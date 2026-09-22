@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Fix — Report a Problem</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1a1a1a;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 22px;
+      color: #0d3b66;
+    }
+    .back {
+      font-size: 13px;
+      color: #0d3b66;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #e8f0fe;
+    }
+    .back:hover { background: #d3e2fb; }
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      margin-top: 14px;
+      color: #333;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background: #0d3b66;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { background: #092a4a; }
+    button:disabled { background: #8899aa; cursor: not-allowed; }
+    .message {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+      line-height: 1.5;
+    }
+    .message.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .message.error   { background: #fdecea; color: #b3261e; display: block; }
+    .message.info    { background: #e8f0fe; color: #1a4fa0; display: block; }
+    .message a {
+      color: inherit;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+    .message .big-id {
+      display: inline-block;
+      background: rgba(0,0,0,0.08);
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>Report a Problem</h1>
+      <a href="index.html" class="back">← Home</a>
+    </div>
+    <p class="subtitle">Tell us what's wrong. We'll route it to the warden.</p>
+
+    <form id="complaintForm">
+      <label for="student_name">Your Name</label>
+      <input type="text" id="student_name" required placeholder="e.g., Rahul Sharma" />
+
+      <label for="student_roll">Roll Number</label>
+      <input type="text" id="student_roll" required placeholder="e.g., CSE2021045" />
+
+      <label for="hostel">Hostel</label>
+      <input type="text" id="hostel" required placeholder="e.g., Hostel B" />
+
+      <label for="room_number">Room Number</label>
+      <input type="text" id="room_number" required placeholder="e.g., 214" />
+
+      <label for="category">Category</label>
+      <select id="category" required>
+        <option value="">-- Select --</option>
+        <option value="Electrical">Electrical (fan, light, AC, socket)</option>
+        <option value="Plumbing">Plumbing (tap, shower, toilet, drain)</option>
+        <option value="Carpentry">Carpentry (door, lock, window, furniture)</option>
+        <option value="Cleaning">Cleaning (washroom, room, corridor)</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="subcategory">Specific Problem</label>
+      <input type="text" id="subcategory" required placeholder="e.g., Fan not working" />
+
+      <label for="description">Description (optional)</label>
+      <textarea id="description" placeholder="Any extra details..."></textarea>
+
+      <label for="priority">Priority</label>
+      <select id="priority">
+        <option value="NORMAL">Normal</option>
+        <option value="EMERGENCY">Emergency (urgent)</option>
+      </select>
+
+      <button type="submit" id="submitBtn">Submit Complaint</button>
+
+      <div id="message" class="message"></div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('complaintForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const messageBox = document.getElementById('message');
+
+    function showMessage(html, type) {
+      messageBox.innerHTML = html;
+      messageBox.className = 'message ' + type;
+    }
+
+    // Save last-used identity so students don't retype every time
+    const savedName = localStorage.getItem('hf_name');
+    const savedRoll = localStorage.getItem('hf_roll');
+    const savedHostel = localStorage.getItem('hf_hostel');
+    const savedRoom = localStorage.getItem('hf_room');
+    if (savedName) document.getElementById('student_name').value = savedName;
+    if (savedRoll) document.getElementById('student_roll').value = savedRoll;
+    if (savedHostel) document.getElementById('hostel').value = savedHostel;
+    if (savedRoom) document.getElementById('room_number').value = savedRoom;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      messageBox.className = 'message';
+
+      const payload = {
+        student_name: document.getElementById('student_name').value.trim(),
+        student_roll: document.getElementById('student_roll').value.trim(),
+        hostel: document.getElementById('hostel').value.trim(),
+        room_number: document.getElementById('room_number').value.trim(),
+        category: document.getElementById('category').value,
+        subcategory: document.getElementById('subcategory').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        priority: document.getElementById('priority').value
+      };
+
+      // Remember identity for next time
+      localStorage.setItem('hf_name', payload.student_name);
+      localStorage.setItem('hf_roll', payload.student_roll);
+      localStorage.setItem('hf_hostel', payload.hostel);
+      localStorage.setItem('hf_room', payload.room_number);
+
+      try {
+        const res = await fetch('/api/complaints', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMessage(data.error || 'Something went wrong.', 'error');
+        } else if (data.duplicate) {
+          showMessage(
+            '⚠️ A similar complaint is already open.<br>' +
+            'Complaint ID: <span class="big-id">#' + data.complaint_id + '</span><br><br>' +
+            '<a href="my-complaints.html">Check its status →</a>',
+            'info'
+          );
+        } else {
+          showMessage(
+            '✅ Complaint submitted!<br>' +
+            'Your Complaint ID: <span class="big-id">#' + data.complaint_id + '</span><br>' +
+            '<em>Save this ID — you can use it to check status.</em><br><br>' +
+            '<a href="my-complaints.html">Check status →</a>',
+            'success'
+          );
+          form.reset();
+          // Restore identity fields after reset
+          document.getElementById('student_name').value = payload.student_name;
+          document.getElementById('student_roll').value = payload.student_roll;
+          document.getElementById('hostel').value = payload.hostel;
+          document.getElementById('room_number').value = payload.room_number;
+        }
+      } catch (err) {
+        showMessage('Cannot reach server. Is the backend running?', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Complaint';
+      }
+    });
+  </script>
+</body>
+</html>

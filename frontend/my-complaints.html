@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Fix — My Complaints</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1a1a1a;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 22px;
+      color: #0d3b66;
+    }
+    .back {
+      font-size: 13px;
+      color: #0d3b66;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #e8f0fe;
+    }
+    .back:hover { background: #d3e2fb; }
+    .search-box {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      margin-bottom: 18px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #e0e4e8;
+    }
+    .tab {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      font-family: inherit;
+    }
+    .tab.active {
+      color: #0d3b66;
+      border-bottom-color: #0d3b66;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    button.search-btn {
+      margin-top: 12px;
+      padding: 11px 20px;
+      background: #0d3b66;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button.search-btn:hover { background: #092a4a; }
+    button.search-btn:disabled { background: #8899aa; cursor: not-allowed; }
+    .results { display: grid; gap: 12px; }
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      border-left: 5px solid #8899aa;
+    }
+    .card.status-PENDING      { border-left-color: #f0ad00; }
+    .card.status-ASSIGNED     { border-left-color: #1976d2; }
+    .card.status-IN_PROGRESS  { border-left-color: #1976d2; }
+    .card.status-RESOLVED     { border-left-color: #1e7e34; }
+    .card.status-CLOSED       { border-left-color: #555; opacity: 0.8; }
+    .card.status-REOPENED     { border-left-color: #b3261e; }
+    .card.status-REJECTED     { border-left-color: #b3261e; opacity: 0.85; }
+    .card.priority-EMERGENCY {
+      box-shadow: 0 0 0 2px #fdecea, 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d3b66;
+    }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #eef1f5;
+      color: #333;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .badge.EMERGENCY  { background: #fdecea; color: #b3261e; }
+    .badge.PENDING    { background: #fff4d6; color: #8a6300; }
+    .badge.ASSIGNED   { background: #e3f0ff; color: #1a4fa0; }
+    .badge.IN_PROGRESS{ background: #e3f0ff; color: #1a4fa0; }
+    .badge.RESOLVED   { background: #e6f4ea; color: #1e7e34; }
+    .badge.CLOSED     { background: #e8eaed; color: #555; }
+    .badge.REOPENED   { background: #fdecea; color: #b3261e; }
+    .badge.REJECTED   { background: #fdecea; color: #b3261e; }
+    .meta {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .meta strong { color: #333; }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #e0e4e8;
+      flex-wrap: wrap;
+    }
+    .actions button {
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      font-family: inherit;
+    }
+    .actions button.confirm { background: #1e7e34; color: white; border-color: #1e7e34; }
+    .actions button.reopen  { background: #b3261e; color: white; border-color: #b3261e; }
+    .actions button:hover { opacity: 0.9; }
+    .empty, .loading {
+      text-align: center;
+      padding: 26px;
+      color: #888;
+      background: #ffffff;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .error {
+      padding: 14px;
+      background: #fdecea;
+      color: #b3261e;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>Check Complaint Status</h1>
+      <a href="index.html" class="back">← Home</a>
+    </div>
+
+    <div class="search-box">
+      <div class="tabs">
+        <button class="tab active" data-tab="roll">By Roll Number</button>
+        <button class="tab" data-tab="id">By Complaint ID</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-roll">
+        <label for="rollInput">Enter your Roll Number</label>
+        <input type="text" id="rollInput" placeholder="e.g., CSE2021045" />
+        <button class="search-btn" id="searchRollBtn">Search</button>
+      </div>
+
+      <div class="tab-panel" id="panel-id">
+        <label for="idInput">Enter Complaint ID</label>
+        <input type="text" id="idInput" placeholder="e.g., 1" />
+        <button class="search-btn" id="searchIdBtn">Search</button>
+      </div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="empty">Enter your roll number or complaint ID above to see your complaints.</div>
+    </div>
+  </div>
+
+  <script>
+    const resultsEl = document.getElementById('results');
+    const rollInput = document.getElementById('rollInput');
+    const idInput = document.getElementById('idInput');
+    const searchRollBtn = document.getElementById('searchRollBtn');
+    const searchIdBtn = document.getElementById('searchIdBtn');
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderCard(c) {
+      const div = document.createElement('div');
+      div.className = `card status-${c.status} priority-${c.priority}`;
+
+      const canConfirm = c.status === 'RESOLVED';
+      const canReopen  = c.status === 'RESOLVED' || c.status === 'CLOSED';
+
+      div.innerHTML = `
+        <div class="card-top">
+          <div>
+            <div class="card-title">#${c.id} · ${escapeHtml(c.subcategory)}</div>
+            <div class="meta">
+              Room <strong>${escapeHtml(c.room_number)}</strong>, ${escapeHtml(c.hostel)}<br>
+              Category: ${escapeHtml(c.category)}<br>
+              Submitted: ${formatDate(c.created_at)}
+              ${c.assigned_to ? '<br>Assigned to: ' + escapeHtml(c.assigned_to) : ''}
+              ${c.resolved_at ? '<br>Resolved: ' + formatDate(c.resolved_at) : ''}
+              ${c.description ? '<br>Note: ' + escapeHtml(c.description) : ''}
+              ${c.feedback ? '<br><strong>Your feedback:</strong> ' + escapeHtml(c.feedback) : ''}
+            </div>
+          </div>
+          <div class="badges">
+            ${c.priority === 'EMERGENCY' ? '<span class="badge EMERGENCY">Emergency</span>' : ''}
+            <span class="badge ${c.status}">${c.status}</span>
+          </div>
+        </div>
+        ${(canConfirm || canReopen) ? `
+        <div class="actions">
+          ${canConfirm ? '<button class="confirm" data-action="CONFIRM">✅ It\'s fixed</button>' : ''}
+          ${canReopen ? '<button class="reopen" data-action="REOPEN">❌ Not fixed — Reopen</button>' : ''}
+        </div>` : ''}
+      `;
+
+      div.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.getAttribute('data-action');
+          if (action === 'CONFIRM') studentConfirm(c.id);
+          if (action === 'REOPEN')  studentReopen(c.id);
+        });
+      });
+
+      return div;
+    }
+
+    function renderList(list) {
+      if (!list || list.length === 0) {
+        resultsEl.innerHTML = '<div class="empty">No complaints found.</div>';
+        return;
+      }
+      resultsEl.innerHTML = '';
+      list.forEach(c => resultsEl.appendChild(renderCard(c)));
+    }
+
+    async function searchByRoll() {
+      const roll = rollInput.value.trim();
+      if (!roll) return;
+      resultsEl.innerHTML = '<div class="loading">Searching...</div>';
+      try {
+        const res = await fetch('/api/complaints/by-roll/' + encodeURIComponent(roll));
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (data.length === 0) {
+          resultsEl.innerHTML = '<div class="empty">No complaints found for roll number: ' + escapeHtml(roll) + '</div>';
+        } else {
+          renderList(data);
+        }
+      } catch (err) {
+        resultsEl.innerHTML = '<div class="error">Could not reach server. Is the backend running?</div>';
+      }
+    }
+
+    async function searchById() {
+      const id = idInput.value.trim();
+      if (!id) return;
+      resultsEl.innerHTML = '<div class="loading">Searching...</div>';
+      try {
+        const res = await fetch('/api/complaints/' + encodeURIComponent(id));
+        if (res.status === 404) {
+          resultsEl.innerHTML = '<div class="empty">No complaint found with ID: ' + escapeHtml(id) + '</div>';
+          return;
+        }
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        renderList([data]);
+      } catch (err) {
+        resultsEl.innerHTML = '<div class="error">Could not reach server. Is the backend running?</div>';
+      }
+    }
+
+    async function studentConfirm(id) {
+      try {
+        const res = await fetch('/api/complaints/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'CLOSED', feedback: 'Student confirmed: fixed' })
+        });
+        if (!res.ok) throw new Error();
+        // Re-run the same search
+        if (document.querySelector('.tab.active').dataset.tab === 'roll') searchByRoll();
+        else searchById();
+      } catch (err) {
+        alert('Could not update. Try again.');
+      }
+    }
+
+    async function studentReopen(id) {
+      try {
+        const res = await fetch('/api/complaints/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'REOPENED', feedback: 'Student says: not fixed' })
+        });
+        if (!res.ok) throw new Error();
+        if (document.querySelector('.tab.active').dataset.tab === 'roll') searchByRoll();
+        else searchById();
+      } catch (err) {
+        alert('Could not update. Try again.');
+      }
+    }
+
+    searchRollBtn.addEventListener('click', searchByRoll);
+    searchIdBtn.addEventListener('click', searchById);
+    rollInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchByRoll(); });
+    idInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchById(); });
+  </script>
+</body>
+</html>

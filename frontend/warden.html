@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Fix — Warden Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1a1a1a;
+      padding: 20px;
+    }
+    .header {
+      max-width: 1100px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left h1 { font-size: 24px; color: #0d3b66; }
+    .back {
+      font-size: 13px;
+      color: #0d3b66;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #e8f0fe;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .back:hover { background: #d3e2fb; }
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat {
+      background: #ffffff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-size: 13px;
+    }
+    .stat strong { color: #0d3b66; font-size: 15px; }
+    .controls {
+      max-width: 1100px;
+      margin: 0 auto 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #ffffff;
+      padding: 12px 14px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .controls label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-right: -4px;
+    }
+    .controls input, .controls select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccd3da;
+      font-size: 14px;
+      background: #ffffff;
+      font-family: inherit;
+    }
+    .controls button.primary {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      background: #0d3b66;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .controls button.primary:hover { background: #092a4a; }
+    .last-updated {
+      font-size: 12px;
+      color: #888;
+      margin-left: auto;
+    }
+    .list {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      border-left: 5px solid #8899aa;
+      display: grid;
+      gap: 10px;
+    }
+    .card.priority-EMERGENCY { border-left-color: #d32f2f; }
+    .card.priority-NORMAL    { border-left-color: #1976d2; }
+    .card.status-PENDING      { background: #fffdf5; }
+    .card.status-ASSIGNED     { background: #f5faff; }
+    .card.status-IN_PROGRESS  { background: #f5faff; }
+    .card.status-RESOLVED     { background: #f4fbf6; }
+    .card.status-CLOSED       { background: #f4f6f8; opacity: 0.75; }
+    .card.status-REOPENED     { background: #fff5f5; }
+    .card.status-REJECTED     { background: #f8f8f8; opacity: 0.7; }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d3b66;
+    }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef1f5;
+      color: #333;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .badge.EMERGENCY  { background: #fdecea; color: #b3261e; }
+    .badge.PENDING    { background: #fff4d6; color: #8a6300; }
+    .badge.ASSIGNED   { background: #e3f0ff; color: #1a4fa0; }
+    .badge.IN_PROGRESS{ background: #e3f0ff; color: #1a4fa0; }
+    .badge.RESOLVED   { background: #e6f4ea; color: #1e7e34; }
+    .badge.CLOSED     { background: #e8eaed; color: #555; }
+    .badge.REOPENED   { background: #fdecea; color: #b3261e; }
+    .badge.REJECTED   { background: #f0f0f0; color: #555; }
+    .meta {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.55;
+    }
+    .meta strong { color: #333; }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px dashed #e0e4e8;
+      align-items: center;
+    }
+    .actions input, .actions select {
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccd3da;
+      font-size: 13px;
+      font-family: inherit;
+      background: #ffffff;
+    }
+    .actions button {
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .actions button:hover { background: #f0f3f7; }
+    .actions button.assign { background: #0d3b66; color: white; border-color: #0d3b66; }
+    .actions button.progress { background: #1976d2; color: white; border-color: #1976d2; }
+    .actions button.resolve { background: #1e7e34; color: white; border-color: #1e7e34; }
+    .actions button.reject  { background: #b3261e; color: white; border-color: #b3261e; }
+    .actions button.reopen  { background: #f0ad00; color: #333; border-color: #f0ad00; }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      background: #ffffff;
+      border-radius: 10px;
+    }
+    .loading { text-align: center; padding: 30px; color: #666; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <a href="index.html" class="back">← Home</a>
+      <h1>Warden Dashboard</h1>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="controls">
+    <label for="filterHostel">Hostel</label>
+    <input type="text" id="filterHostel" placeholder="e.g., Hostel B" style="width:140px;" />
+
+    <label for="filterStatus">Status</label>
+    <select id="filterStatus">
+      <option value="">All</option>
+      <option value="PENDING">Pending</option>
+      <option value="ASSIGNED">Assigned</option>
+      <option value="IN_PROGRESS">In Progress</option>
+      <option value="RESOLVED">Resolved</option>
+      <option value="CLOSED">Closed</option>
+      <option value="REOPENED">Reopened</option>
+      <option value="REJECTED">Rejected</option>
+    </select>
+
+    <button class="primary" id="refreshBtn">Refresh</button>
+    <span class="last-updated" id="lastUpdated"></span>
+  </div>
+
+  <div class="list" id="list">
+    <div class="loading">Loading complaints...</div>
+  </div>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const statsEl = document.getElementById('stats');
+    const filterStatusEl = document.getElementById('filterStatus');
+    const filterHostelEl = document.getElementById('filterHostel');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+
+    let allComplaints = [];
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString();
+    }
+
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const diff = Date.now() - new Date(iso).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + ' min ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + ' hr ago';
+      const days = Math.floor(hrs / 24);
+      return days + ' day' + (days > 1 ? 's' : '') + ' ago';
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderStats() {
+      const counts = {
+        total: allComplaints.length,
+        pending: 0, assigned: 0, inProgress: 0,
+        resolved: 0, reopened: 0, emergency: 0
+      };
+      for (const c of allComplaints) {
+        if (c.status === 'PENDING') counts.pending++;
+        if (c.status === 'ASSIGNED') counts.assigned++;
+        if (c.status === 'IN_PROGRESS') counts.inProgress++;
+        if (c.status === 'RESOLVED') counts.resolved++;
+        if (c.status === 'REOPENED') counts.reopened++;
+        if (c.priority === 'EMERGENCY') counts.emergency++;
+      }
+      statsEl.innerHTML = `
+        <div class="stat">Total: <strong>${counts.total}</strong></div>
+        <div class="stat">Pending: <strong>${counts.pending}</strong></div>
+        <div class="stat">Assigned: <strong>${counts.assigned}</strong></div>
+        <div class="stat">In Progress: <strong>${counts.inProgress}</strong></div>
+        <div class="stat">Resolved: <strong>${counts.resolved}</strong></div>
+        <div class="stat" style="color:#b3261e;">Reopened: <strong>${counts.reopened}</strong></div>
+        <div class="stat" style="color:#b3261e;">Emergency: <strong>${counts.emergency}</strong></div>
+      `;
+    }
+
+    function renderCard(c) {
+      const div = document.createElement('div');
+      div.className = `card priority-${c.priority} status-${c.status}`;
+
+      const isFinal = c.status === 'CLOSED' || c.status === 'REJECTED';
+      const canReopen = c.status === 'CLOSED' || c.status === 'REJECTED';
+
+      div.innerHTML = `
+        <div class="card-top">
+          <div>
+            <div class="card-title">#${c.id} · Room ${escapeHtml(c.room_number)} · ${escapeHtml(c.subcategory)}</div>
+            <div class="meta">
+              <strong>${escapeHtml(c.student_name)}</strong> (${escapeHtml(c.student_roll)}) · ${escapeHtml(c.hostel)}<br>
+              Category: ${escapeHtml(c.category)} · Submitted: ${formatDate(c.created_at)} (${timeAgo(c.created_at)})
+              ${c.description ? '<br>Note: ' + escapeHtml(c.description) : ''}
+              ${c.assigned_to ? '<br>Assigned to: ' + escapeHtml(c.assigned_to) : ''}
+              ${c.resolved_at ? '<br>Resolved: ' + formatDate(c.resolved_at) : ''}
+              ${c.feedback ? '<br><strong>Feedback:</strong> ' + escapeHtml(c.feedback) : ''}
+              ${c.reopen_count > 0 ? '<br><span style="color:#b3261e;">⚠ Reopened ' + c.reopen_count + ' time(s)</span>' : ''}
+            </div>
+          </div>
+          <div class="badges">
+            ${c.priority === 'EMERGENCY' ? '<span class="badge EMERGENCY">Emergency</span>' : ''}
+            <span class="badge ${c.status}">${c.status}</span>
+          </div>
+        </div>
+        ${!isFinal ? `
+        <div class="actions">
+          <input type="text" class="assignInput" placeholder="Staff name" value="${c.assigned_to ? escapeHtml(c.assigned_to) : ''}" />
+          <button class="assign" data-action="ASSIGNED">Assign</button>
+          <button class="progress" data-action="IN_PROGRESS">In Progress</button>
+          <button class="resolve" data-action="RESOLVED">Resolve</button>
+          <button data-action="CLOSED">Close</button>
+          <button class="reject" data-action="REJECTED">Reject</button>
+        </div>
+        ` : `
+        <div class="actions">
+          <button class="reopen" data-action="REOPENED">Reopen</button>
+        </div>
+        `}
+      `;
+
+      div.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.getAttribute('data-action');
+          const assignedInput = div.querySelector('.assignInput');
+          const assignedTo = assignedInput ? assignedInput.value.trim() : undefined;
+
+          if (action === 'REJECTED') {
+            const reason = prompt('Reason for rejection (will be shown to student):');
+            if (reason === null) return; // cancelled
+            updateComplaint(c.id, action, assignedTo, reason);
+          } else {
+            updateComplaint(c.id, action, assignedTo);
+          }
+        });
+      });
+
+      return div;
+    }
+
+    function render() {
+      const filterStatus = filterStatusEl.value;
+      const filterHostel = filterHostelEl.value.trim().toLowerCase();
+
+      let filtered = allComplaints;
+      if (filterStatus) filtered = filtered.filter(c => c.status === filterStatus);
+      if (filterHostel) filtered = filtered.filter(c => c.hostel.toLowerCase().includes(filterHostel));
+
+      listEl.innerHTML = '';
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty">No complaints to show.</div>';
+      } else {
+        filtered.forEach(c => listEl.appendChild(renderCard(c)));
+      }
+      renderStats();
+    }
+
+    async function loadComplaints() {
+      try {
+        const res = await fetch('/api/complaints');
+        if (!res.ok) throw new Error('Failed to load');
+        allComplaints = await res.json();
+        lastUpdatedEl.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+        render();
+      } catch (err) {
+        listEl.innerHTML = '<div class="empty">Cannot reach server. Is the backend running?</div>';
+      }
+    }
+
+    async function updateComplaint(id, status, assignedTo, feedback) {
+      try {
+        const body = { status };
+        if (assignedTo !== undefined && assignedTo !== '') body.assigned_to = assignedTo;
+        if (feedback !== undefined) body.feedback = feedback;
+
+        const res = await fetch('/api/complaints/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('Update failed');
+        await loadComplaints();
+      } catch (err) {
+        alert('Could not update complaint. Check server.');
+      }
+    }
+
+    filterStatusEl.addEventListener('change', render);
+    filterHostelEl.addEventListener('input', render);
+    refreshBtn.addEventListener('click', loadComplaints);
+
+    loadComplaints();
+    setInterval(loadComplaints, 15000);
+  </script>
+</body>
+</html>
