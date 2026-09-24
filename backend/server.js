@@ -1,10 +1,12 @@
 // server.js
-// Main backend server for hostel-fix
+// Main backend server for hostel-fix (PostgreSQL version)
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const db = require('./database');
+require('dotenv').config();
+
+const { pool, initSchema } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,19 +15,19 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend files (index.html, student.html, warden.html) from ../frontend
+// Serve frontend files
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
-// Helper: current timestamp as string
+// Helper
 function now() {
-  return new Date().toISOString();
+  return new Date();
 }
 
 // ---------------------------------------------
-// ROUTE 1: Student submits a new complaint
+// ROUTE 1: Submit a new complaint
 // POST /api/complaints
 // ---------------------------------------------
-app.post('/api/complaints', (req, res) => {
+app.post('/api/complaints', async (req, res) => {
   try {
     const {
       student_name,
@@ -43,49 +45,45 @@ app.post('/api/complaints', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const timestamp = now();
+    // Duplicate check
+    const dupResult = await pool.query(
+      `SELECT id FROM complaints
+       WHERE room_number = $1
+         AND subcategory = $2
+         AND status NOT IN ('CLOSED', 'REJECTED')
+         AND created_at > NOW() - INTERVAL '1 day'`,
+      [room_number, subcategory]
+    );
 
-    // Check for duplicate: same room + same subcategory + active status, within 24 hours
-    const duplicate = db.prepare(`
-      SELECT id FROM complaints
-      WHERE room_number = ?
-        AND subcategory = ?
-        AND status NOT IN ('CLOSED', 'REJECTED')
-        AND datetime(created_at) > datetime('now', '-1 day')
-    `).get(room_number, subcategory);
-
-    if (duplicate) {
+    if (dupResult.rows.length > 0) {
       return res.status(200).json({
         message: 'Duplicate complaint already exists',
-        complaint_id: duplicate.id,
+        complaint_id: dupResult.rows[0].id,
         duplicate: true
       });
     }
 
-    const stmt = db.prepare(`
-      INSERT INTO complaints (
+    const insertResult = await pool.query(
+      `INSERT INTO complaints (
         student_name, student_roll, room_number, hostel,
-        category, subcategory, description, status, priority,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      student_name,
-      student_roll,
-      room_number,
-      hostel,
-      category,
-      subcategory,
-      description || '',
-      priority || 'NORMAL',
-      timestamp,
-      timestamp
+        category, subcategory, description, status, priority
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING', $8)
+      RETURNING id`,
+      [
+        student_name,
+        student_roll,
+        room_number,
+        hostel,
+        category,
+        subcategory,
+        description || '',
+        priority || 'NORMAL'
+      ]
     );
 
     res.status(201).json({
       message: 'Complaint submitted successfully',
-      complaint_id: result.lastInsertRowid,
+      complaint_id: insertResult.rows[0].id,
       duplicate: false
     });
   } catch (err) {
@@ -95,33 +93,36 @@ app.post('/api/complaints', (req, res) => {
 });
 
 // ---------------------------------------------
-// ROUTE 2: Warden fetches all complaints
-// GET /api/complaints
-// Supports optional query: ?hostel=Hostel B&status=PENDING
+// ROUTE 2: Get all complaints (with optional filters)
+// GET /api/complaints?hostel=X&status=Y
 // ---------------------------------------------
-app.get('/api/complaints', (req, res) => {
+app.get('/api/complaints', async (req, res) => {
   try {
     const { hostel, status } = req.query;
-    let sql = 'SELECT * FROM complaints WHERE 1=1';
+    const conditions = [];
     const params = [];
 
     if (hostel) {
-      sql += ' AND hostel = ?';
       params.push(hostel);
+      conditions.push(`hostel = $${params.length}`);
     }
     if (status) {
-      sql += ' AND status = ?';
       params.push(status);
+      conditions.push(`status = $${params.length}`);
     }
 
-    sql += `
-      ORDER BY
-        CASE priority WHEN 'EMERGENCY' THEN 0 ELSE 1 END,
-        datetime(created_at) DESC
-    `;
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const complaints = db.prepare(sql).all(...params);
-    res.json(complaints);
+    const result = await pool.query(
+      `SELECT * FROM complaints
+       ${whereClause}
+       ORDER BY
+         CASE priority WHEN 'EMERGENCY' THEN 0 ELSE 1 END,
+         created_at DESC`,
+      params
+    );
+
+    res.json(result.rows);
   } catch (err) {
     console.error('Error fetching complaints:', err);
     res.status(500).json({ error: 'Server error' });
@@ -129,19 +130,19 @@ app.get('/api/complaints', (req, res) => {
 });
 
 // ---------------------------------------------
-// ROUTE 3: Fetch complaints by roll number
+// ROUTE 3: Get complaints by roll number
 // GET /api/complaints/by-roll/:roll
 // ---------------------------------------------
-app.get('/api/complaints/by-roll/:roll', (req, res) => {
+app.get('/api/complaints/by-roll/:roll', async (req, res) => {
   try {
     const roll = req.params.roll;
-    const complaints = db.prepare(`
-      SELECT * FROM complaints
-      WHERE student_roll = ?
-      ORDER BY datetime(created_at) DESC
-    `).all(roll);
-
-    res.json(complaints);
+    const result = await pool.query(
+      `SELECT * FROM complaints
+       WHERE student_roll = $1
+       ORDER BY created_at DESC`,
+      [roll]
+    );
+    res.json(result.rows);
   } catch (err) {
     console.error('Error fetching by roll:', err);
     res.status(500).json({ error: 'Server error' });
@@ -149,23 +150,21 @@ app.get('/api/complaints/by-roll/:roll', (req, res) => {
 });
 
 // ---------------------------------------------
-// ROUTE 4: Fetch one complaint by ID
+// ROUTE 4: Get one complaint by ID
 // GET /api/complaints/:id
 // ---------------------------------------------
-app.get('/api/complaints/:id', (req, res) => {
+app.get('/api/complaints/:id', async (req, res) => {
   try {
     const id = req.params.id;
-
-    // Prevent this route from catching 'by-roll' (safety)
     if (isNaN(Number(id))) {
       return res.status(400).json({ error: 'Invalid complaint ID' });
     }
 
-    const complaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(id);
-    if (!complaint) {
+    const result = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Complaint not found' });
     }
-    res.json(complaint);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching complaint:', err);
     res.status(500).json({ error: 'Server error' });
@@ -173,60 +172,58 @@ app.get('/api/complaints/:id', (req, res) => {
 });
 
 // ---------------------------------------------
-// ROUTE 5: Warden updates complaint status
+// ROUTE 5: Update complaint (status, assigned_to, feedback)
 // PATCH /api/complaints/:id
 // ---------------------------------------------
-app.patch('/api/complaints/:id', (req, res) => {
+app.patch('/api/complaints/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const { status, assigned_to, feedback } = req.body;
 
-    const complaint = db.prepare('SELECT * FROM complaints WHERE id = ?').get(id);
-    if (!complaint) {
+    // Check exists
+    const check = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    if (check.rows.length === 0) {
       return res.status(404).json({ error: 'Complaint not found' });
     }
-
-    const timestamp = now();
 
     const updates = [];
     const values = [];
 
     if (status) {
-      updates.push('status = ?');
       values.push(status);
+      updates.push(`status = $${values.length}`);
     }
     if (assigned_to !== undefined) {
-      updates.push('assigned_to = ?');
       values.push(assigned_to);
+      updates.push(`assigned_to = $${values.length}`);
     }
     if (feedback !== undefined) {
-      updates.push('feedback = ?');
       values.push(feedback);
+      updates.push(`feedback = $${values.length}`);
     }
 
-    updates.push('updated_at = ?');
-    values.push(timestamp);
+    updates.push(`updated_at = NOW()`);
 
     if (status === 'RESOLVED') {
-      updates.push('resolved_at = ?');
-      values.push(timestamp);
+      updates.push(`resolved_at = NOW()`);
     }
     if (status === 'CLOSED') {
-      updates.push('closed_at = ?');
-      values.push(timestamp);
+      updates.push(`closed_at = NOW()`);
     }
     if (status === 'REOPENED') {
-      updates.push('reopen_count = reopen_count + 1');
+      updates.push(`reopen_count = reopen_count + 1`);
     }
 
     values.push(id);
+    const idPlaceholder = `$${values.length}`;
 
-    db.prepare(`
-      UPDATE complaints SET ${updates.join(', ')} WHERE id = ?
-    `).run(...values);
+    await pool.query(
+      `UPDATE complaints SET ${updates.join(', ')} WHERE id = ${idPlaceholder}`,
+      values
+    );
 
-    const updated = db.prepare('SELECT * FROM complaints WHERE id = ?').get(id);
-    res.json(updated);
+    const updated = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    res.json(updated.rows[0]);
   } catch (err) {
     console.error('Error updating complaint:', err);
     res.status(500).json({ error: 'Server error' });
@@ -238,13 +235,25 @@ app.patch('/api/complaints/:id', (req, res) => {
 // GET /api/health
 // ---------------------------------------------
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: now() });
+  res.json({ status: 'ok', time: now().toISOString() });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Hostel-Fix backend running at http://localhost:${PORT}`);
-  console.log(`Home page:     http://localhost:${PORT}/`);
-  console.log(`Student page:  http://localhost:${PORT}/student.html`);
-  console.log(`Warden page:   http://localhost:${PORT}/warden.html`);
-});
+// ---------------------------------------------
+// Start server (after DB schema is ready)
+// ---------------------------------------------
+async function start() {
+  try {
+    await initSchema();
+    app.listen(PORT, () => {
+      console.log(`Hostel-Fix backend running at http://localhost:${PORT}`);
+      console.log(`Home page:     http://localhost:${PORT}/`);
+      console.log(`Student page:  http://localhost:${PORT}/student.html`);
+      console.log(`Warden page:   http://localhost:${PORT}/warden.html`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  }
+}
+
+start();

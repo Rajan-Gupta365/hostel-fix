@@ -1,39 +1,62 @@
 // database.js
-// Sets up SQLite database and complaints table
+// PostgreSQL connection + schema setup for hostel-fix
 
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Database file will be created at: backend/complaints.db
-const dbPath = path.join(__dirname, 'complaints.db');
-const db = new Database(dbPath);
+// Render provides DATABASE_URL in production.
+// Locally, .env file provides it.
+const connectionString = process.env.DATABASE_URL;
 
-// Enable foreign keys (good practice)
-db.pragma('journal_mode = WAL');
+if (!connectionString) {
+  console.error('ERROR: DATABASE_URL environment variable is not set.');
+  console.error('Locally: create backend/.env with DATABASE_URL=...');
+  console.error('On Render: set it in Environment settings.');
+  process.exit(1);
+}
 
-// Create complaints table if it doesn't exist
-db.exec(`
-  CREATE TABLE IF NOT EXISTS complaints (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_name TEXT NOT NULL,
-    student_roll TEXT NOT NULL,
-    room_number TEXT NOT NULL,
-    hostel TEXT NOT NULL,
-    category TEXT NOT NULL,
-    subcategory TEXT NOT NULL,
-    description TEXT,
-    status TEXT NOT NULL DEFAULT 'PENDING',
-    assigned_to TEXT,
-    priority TEXT NOT NULL DEFAULT 'NORMAL',
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    resolved_at TEXT,
-    closed_at TEXT,
-    reopen_count INTEGER NOT NULL DEFAULT 0,
-    feedback TEXT
-  )
-`);
+// Render's external Postgres requires SSL.
+// We disable strict cert validation because Render uses valid certs but
+// pg's default rejects them unless we configure. Simple approach:
+const useSSL = connectionString.includes('render.com') ||
+               connectionString.includes('sslmode=require');
 
-console.log('Database ready at:', dbPath);
+const pool = new Pool({
+  connectionString,
+  ssl: useSSL ? { rejectUnauthorized: false } : false
+});
 
-module.exports = db;
+// Create table on startup
+async function initSchema() {
+  const createTableSQL = `
+    CREATE TABLE IF NOT EXISTS complaints (
+      id SERIAL PRIMARY KEY,
+      student_name TEXT NOT NULL,
+      student_roll TEXT NOT NULL,
+      room_number TEXT NOT NULL,
+      hostel TEXT NOT NULL,
+      category TEXT NOT NULL,
+      subcategory TEXT NOT NULL,
+      description TEXT,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      assigned_to TEXT,
+      priority TEXT NOT NULL DEFAULT 'NORMAL',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      resolved_at TIMESTAMPTZ,
+      closed_at TIMESTAMPTZ,
+      reopen_count INTEGER NOT NULL DEFAULT 0,
+      feedback TEXT
+    )
+  `;
+
+  try {
+    await pool.query(createTableSQL);
+    console.log('Database schema ready (PostgreSQL)');
+  } catch (err) {
+    console.error('Error creating schema:', err.message);
+    throw err;
+  }
+}
+
+module.exports = { pool, initSchema };
