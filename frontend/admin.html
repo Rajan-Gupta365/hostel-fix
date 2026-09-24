@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Fix — Admin Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1a1a1a;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 24px; color: #0d3b66; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-link {
+      font-size: 13px;
+      color: #0d3b66;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      background: #e8f0fe;
+    }
+    .nav-link:hover { background: #d3e2fb; }
+    .logout-btn {
+      background: #b3261e;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .logout-btn:hover { background: #8a1c16; }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 17px;
+      color: #0d3b66;
+      margin-bottom: 16px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 12px;
+    }
+    .btn-primary { background: #0d3b66; color: white; }
+    .btn-primary:hover { background: #092a4a; }
+    .btn-primary:disabled { background: #8899aa; cursor: not-allowed; }
+    .msg {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .msg.error   { background: #fdecea; color: #b3261e; display: block; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e6eaee;
+    }
+    th {
+      font-weight: 700;
+      color: #555;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    td.actions { text-align: right; white-space: nowrap; }
+    td.actions button {
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 5px;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      cursor: pointer;
+      margin-left: 4px;
+      font-family: inherit;
+    }
+    td.actions button:hover { background: #f0f3f7; }
+    td.actions button.warn { background: #fdecea; color: #b3261e; border-color: #f3b4b0; }
+    td.actions button.ok   { background: #e6f4ea; color: #1e7e34; border-color: #a6d8b5; }
+    td.actions button.reset { background: #fff4d6; color: #8a6300; border-color: #e8ce8a; }
+    .inactive { opacity: 0.55; }
+    .badge-active { color: #1e7e34; font-weight: 700; }
+    .badge-inactive { color: #b3261e; font-weight: 700; }
+    .empty { text-align: center; padding: 24px; color: #888; font-size: 13px; }
+    .guard {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>Admin Panel</h1>
+      <div class="nav-links">
+        <a href="warden.html" class="nav-link">← Dashboard</a>
+        <a href="change-password.html" class="nav-link">Change Password</a>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <!-- Guard (shown when not admin) -->
+    <div id="guard" class="guard" style="display:none;">
+      <div style="font-size:40px;">🔒</div>
+      <p style="margin-top:12px;">Admin access required.</p>
+      <p style="margin-top:8px;"><a href="login.html" class="nav-link">Go to Login</a></p>
+    </div>
+
+    <!-- Main content (only for admin) -->
+    <div id="main" style="display:none;">
+
+      <!-- Create warden -->
+      <div class="card">
+        <h2>➕ Create New Warden</h2>
+        <div class="form-grid">
+          <div>
+            <label for="w_username">Username</label>
+            <input type="text" id="w_username" placeholder="e.g., warden_b" />
+          </div>
+          <div>
+            <label for="w_fullname">Full Name</label>
+            <input type="text" id="w_fullname" placeholder="e.g., Suresh Kumar" />
+          </div>
+          <div>
+            <label for="w_hostel">Hostel</label>
+            <input type="text" id="w_hostel" placeholder="e.g., Hostel B" />
+          </div>
+          <div>
+            <label for="w_password">Password (min 8 chars)</label>
+            <input type="text" id="w_password" placeholder="e.g., welcome123" />
+          </div>
+        </div>
+        <button class="btn btn-primary" id="createBtn">Create Warden</button>
+        <div class="msg" id="createMsg"></div>
+      </div>
+
+      <!-- List wardens -->
+      <div class="card">
+        <h2>👥 All Wardens</h2>
+        <div id="wardenList">
+          <div class="empty">Loading...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const guardEl = document.getElementById('guard');
+    const mainEl  = document.getElementById('main');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const createBtn = document.getElementById('createBtn');
+    const createMsg = document.getElementById('createMsg');
+    const wardenList = document.getElementById('wardenList');
+
+    // ---------- Auth guard ----------
+    async function guard() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return false;
+        }
+        const data = await res.json();
+        if (data.user.role !== 'admin') {
+          guardEl.style.display = 'block';
+          mainEl.style.display = 'none';
+          return false;
+        }
+        mainEl.style.display = 'block';
+        return true;
+      } catch (err) {
+        window.location.href = 'login.html';
+        return false;
+      }
+    }
+
+    // ---------- Logout ----------
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = 'login.html';
+    });
+
+    // ---------- Create warden ----------
+    createBtn.addEventListener('click', async () => {
+      createBtn.disabled = true;
+      createMsg.className = 'msg';
+
+      const payload = {
+        username: document.getElementById('w_username').value.trim(),
+        full_name: document.getElementById('w_fullname').value.trim(),
+        hostel: document.getElementById('w_hostel').value.trim(),
+        password: document.getElementById('w_password').value
+      };
+
+      if (!payload.username || !payload.hostel || !payload.password) {
+        createMsg.textContent = 'Username, hostel, and password are required.';
+        createMsg.className = 'msg error';
+        createBtn.disabled = false;
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/wardens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          createMsg.textContent = data.error || 'Failed to create warden';
+          createMsg.className = 'msg error';
+        } else {
+          createMsg.textContent = '✅ Warden created: ' + payload.username;
+          createMsg.className = 'msg success';
+          document.getElementById('w_username').value = '';
+          document.getElementById('w_fullname').value = '';
+          document.getElementById('w_hostel').value = '';
+          document.getElementById('w_password').value = '';
+          loadWardens();
+        }
+      } catch (err) {
+        createMsg.textContent = 'Cannot reach server.';
+        createMsg.className = 'msg error';
+      } finally {
+        createBtn.disabled = false;
+      }
+    });
+
+    // ---------- Load wardens ----------
+    async function loadWardens() {
+      wardenList.innerHTML = '<div class="empty">Loading...</div>';
+      try {
+        const res = await fetch('/api/admin/wardens');
+        if (!res.ok) throw new Error();
+        const wardens = await res.json();
+
+        if (wardens.length === 0) {
+          wardenList.innerHTML = '<div class="empty">No wardens yet. Create one above.</div>';
+          return;
+        }
+
+        let html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Hostel</th>
+                <th>Status</th>
+                <th class="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        for (const w of wardens) {
+          html += `
+            <tr class="${w.is_active ? '' : 'inactive'}">
+              <td><strong>${escapeHtml(w.username)}</strong></td>
+              <td>${escapeHtml(w.full_name || '—')}</td>
+              <td>${escapeHtml(w.hostel)}</td>
+              <td>${w.is_active
+                ? '<span class="badge-active">Active</span>'
+                : '<span class="badge-inactive">Inactive</span>'}</td>
+              <td class="actions">
+                ${w.is_active
+                  ? `<button class="warn" data-action="deactivate" data-id="${w.id}">Deactivate</button>`
+                  : `<button class="ok" data-action="reactivate" data-id="${w.id}">Reactivate</button>`}
+                <button class="reset" data-action="reset" data-id="${w.id}">Reset Pwd</button>
+              </td>
+            </tr>
+          `;
+        }
+
+        html += '</tbody></table>';
+        wardenList.innerHTML = html;
+
+        // Attach action listeners
+        wardenList.querySelectorAll('button[data-action]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            if (action === 'deactivate') deactivate(id);
+            if (action === 'reactivate') reactivate(id);
+            if (action === 'reset') resetPassword(id);
+          });
+        });
+
+      } catch (err) {
+        wardenList.innerHTML = '<div class="empty">Could not load wardens.</div>';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ---------- Warden actions ----------
+    async function deactivate(id) {
+      if (!confirm('Deactivate this warden? They will not be able to log in.')) return;
+      await fetch('/api/admin/wardens/' + id + '/deactivate', { method: 'PATCH' });
+      loadWardens();
+    }
+
+    async function reactivate(id) {
+      await fetch('/api/admin/wardens/' + id + '/reactivate', { method: 'PATCH' });
+      loadWardens();
+    }
+
+    async function resetPassword(id) {
+      const newPwd = prompt('Enter new password for this warden (min 8 chars):');
+      if (newPwd === null) return;
+      if (newPwd.length < 8) {
+        alert('Password must be at least 8 characters.');
+        return;
+      }
+      const res = await fetch('/api/admin/wardens/' + id + '/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_password: newPwd })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to reset password');
+      } else {
+        alert('Password reset successfully.');
+      }
+    }
+
+    // ---------- Init ----------
+    (async () => {
+      const ok = await guard();
+      if (ok) loadWardens();
+    })();
+  </script>
+</body>
+</html>

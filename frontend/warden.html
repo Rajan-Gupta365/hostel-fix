@@ -42,8 +42,19 @@
       border-radius: 8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       font-size: 13px;
+      flex-wrap: wrap;
     }
     .user-info strong { color: #0d3b66; }
+    .user-info a {
+      color: #0d3b66;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #e8f0fe;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .user-info a:hover { background: #d3e2fb; }
     .logout-btn {
       background: #b3261e;
       color: white;
@@ -66,7 +77,6 @@
     }
     .stat strong { color: #0d3b66; font-size: 15px; }
 
-    /* Search bar */
     .search-bar {
       max-width: 1100px;
       margin: 0 auto 12px;
@@ -230,6 +240,8 @@
     </div>
     <div class="user-info" id="userInfo" style="display:none;">
       <span>👤 <strong id="userName"></strong> <span id="userRole"></span></span>
+      <a href="change-password.html">Change Password</a>
+      <a href="admin.html" id="adminLink" style="display:none;">Admin Panel</a>
       <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
   </div>
@@ -282,14 +294,12 @@
     const userInfoEl = document.getElementById('userInfo');
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
+    const adminLink = document.getElementById('adminLink');
     const logoutBtn = document.getElementById('logoutBtn');
 
     let allComplaints = [];
     let currentUser = null;
 
-    // ---------------------------------------------
-    // Auth check
-    // ---------------------------------------------
     async function checkAuth() {
       try {
         const res = await fetch('/api/auth/me');
@@ -303,6 +313,11 @@
         userRoleEl.textContent = '(' + currentUser.role +
           (currentUser.hostel ? ' — ' + currentUser.hostel : '') + ')';
         userInfoEl.style.display = 'flex';
+
+        // Show Admin Panel link only for admins
+        if (currentUser.role === 'admin') {
+          adminLink.style.display = 'inline-block';
+        }
 
         if (currentUser.role === 'warden' && currentUser.hostel) {
           filterHostelEl.value = currentUser.hostel;
@@ -320,9 +335,6 @@
       window.location.href = 'login.html';
     });
 
-    // ---------------------------------------------
-    // Helpers
-    // ---------------------------------------------
     function formatDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleString();
@@ -348,9 +360,6 @@
         .replace(/"/g, '&quot;');
     }
 
-    // ---------------------------------------------
-    // Stats
-    // ---------------------------------------------
     function renderStats() {
       const counts = {
         total: allComplaints.length,
@@ -376,13 +385,9 @@
       `;
     }
 
-    // ---------------------------------------------
-    // Card
-    // ---------------------------------------------
     function renderCard(c) {
       const div = document.createElement('div');
       div.className = `card priority-${c.priority} status-${c.status}`;
-
       const isFinal = c.status === 'CLOSED' || c.status === 'REJECTED';
 
       div.innerHTML = `
@@ -439,9 +444,6 @@
       return div;
     }
 
-    // ---------------------------------------------
-    // Render + Filter
-    // ---------------------------------------------
     function render() {
       const filterStatus = filterStatusEl.value;
       const filterHostel = filterHostelEl.value.trim().toLowerCase();
@@ -452,18 +454,11 @@
       if (filterStatus) filtered = filtered.filter(c => c.status === filterStatus);
       if (filterHostel) filtered = filtered.filter(c => c.hostel.toLowerCase().includes(filterHostel));
 
-      // Universal search across multiple fields
       if (search) {
         filtered = filtered.filter(c => {
           const haystack = [
-            String(c.id),
-            c.room_number,
-            c.student_name,
-            c.student_roll,
-            c.hostel,
-            c.category,
-            c.subcategory,
-            c.description || '',
+            String(c.id), c.room_number, c.student_name, c.student_roll,
+            c.hostel, c.category, c.subcategory, c.description || '',
             c.assigned_to || ''
           ].join(' ').toLowerCase();
           return haystack.includes(search);
