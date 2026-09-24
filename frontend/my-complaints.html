@@ -13,20 +13,14 @@
       padding: 20px;
       min-height: 100vh;
     }
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-    }
+    .container { max-width: 720px; margin: 0 auto; }
     .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 18px;
     }
-    h1 {
-      font-size: 22px;
-      color: #0d3b66;
-    }
+    h1 { font-size: 22px; color: #0d3b66; }
     .back {
       font-size: 13px;
       color: #0d3b66;
@@ -36,6 +30,45 @@
       background: #e8f0fe;
     }
     .back:hover { background: #d3e2fb; }
+
+    .welcome-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 32px 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .welcome-emoji { font-size: 48px; margin-bottom: 10px; }
+    .welcome-title { font-size: 20px; color: #0d3b66; margin-bottom: 4px; font-weight: 700; }
+    .welcome-sub { font-size: 14px; color: #666; margin-bottom: 22px; }
+    .see-btn {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #0d3b66;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .see-btn:hover { background: #092a4a; }
+    .switch-link {
+      display: inline-block;
+      margin-top: 18px;
+      font-size: 13px;
+      color: #666;
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+    .switch-link:hover { color: #0d3b66; }
+
     .search-box {
       background: #ffffff;
       border-radius: 12px;
@@ -62,10 +95,7 @@
       border-right: none;
       font-family: inherit;
     }
-    .tab.active {
-      color: #0d3b66;
-      border-bottom-color: #0d3b66;
-    }
+    .tab.active { color: #0d3b66; border-bottom-color: #0d3b66; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     label {
@@ -84,11 +114,7 @@
       font-family: inherit;
       background: #fafbfc;
     }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #0d3b66;
-      background: #ffffff;
-    }
+    input[type="text"]:focus { outline: none; border-color: #0d3b66; background: #ffffff; }
     button.search-btn {
       margin-top: 12px;
       padding: 11px 20px;
@@ -102,7 +128,29 @@
       font-family: inherit;
     }
     button.search-btn:hover { background: #092a4a; }
-    button.search-btn:disabled { background: #8899aa; cursor: not-allowed; }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .result-title { font-size: 16px; font-weight: 700; color: #0d3b66; }
+    .back-to-welcome {
+      font-size: 13px;
+      color: #0d3b66;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #e8f0fe;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .back-to-welcome:hover { background: #d3e2fb; }
+
     .results { display: grid; gap: 12px; }
     .card {
       background: #ffffff;
@@ -129,11 +177,7 @@
       flex-wrap: wrap;
       margin-bottom: 8px;
     }
-    .card-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0d3b66;
-    }
+    .card-title { font-size: 16px; font-weight: 700; color: #0d3b66; }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; }
     .badge {
       font-size: 11px;
@@ -153,11 +197,7 @@
     .badge.CLOSED     { background: #e8eaed; color: #555; }
     .badge.REOPENED   { background: #fdecea; color: #b3261e; }
     .badge.REJECTED   { background: #fdecea; color: #b3261e; }
-    .meta {
-      font-size: 13px;
-      color: #555;
-      line-height: 1.6;
-    }
+    .meta { font-size: 13px; color: #555; line-height: 1.6; }
     .meta strong { color: #333; }
     .actions {
       display: flex;
@@ -180,6 +220,7 @@
     .actions button.confirm { background: #1e7e34; color: white; border-color: #1e7e34; }
     .actions button.reopen  { background: #b3261e; color: white; border-color: #b3261e; }
     .actions button:hover { opacity: 0.9; }
+
     .empty, .loading {
       text-align: center;
       padding: 26px;
@@ -195,16 +236,26 @@
       border-radius: 10px;
       font-size: 14px;
     }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="topbar">
-      <h1>Check Complaint Status</h1>
+      <h1>My Complaints</h1>
       <a href="index.html" class="back">← Home</a>
     </div>
 
-    <div class="search-box">
+    <div class="welcome-card hidden" id="welcomeCard">
+      <div class="welcome-emoji">👋</div>
+      <div class="welcome-title" id="welcomeTitle">Welcome back</div>
+      <div class="welcome-sub" id="welcomeSub"></div>
+      <button class="see-btn" id="seeBtn">📋 See My Complaints</button>
+      <br>
+      <button class="switch-link" id="switchBtn">Not you? Switch student</button>
+    </div>
+
+    <div class="search-box" id="searchBox">
       <div class="tabs">
         <button class="tab active" data-tab="roll">By Roll Number</button>
         <button class="tab" data-tab="id">By Complaint ID</button>
@@ -223,19 +274,45 @@
       </div>
     </div>
 
+    <div class="result-header hidden" id="resultHeader">
+      <div class="result-title" id="resultTitle"></div>
+      <button class="back-to-welcome" id="backToWelcomeBtn">← Back</button>
+    </div>
+
     <div class="results" id="results">
-      <div class="empty">Enter your roll number or complaint ID above to see your complaints.</div>
+      <div class="empty" id="initialMessage">
+        Enter your roll number or complaint ID above to see your complaints.
+      </div>
     </div>
   </div>
 
   <script>
-    const resultsEl = document.getElementById('results');
+    const welcomeCard = document.getElementById('welcomeCard');
+    const welcomeTitle = document.getElementById('welcomeTitle');
+    const welcomeSub = document.getElementById('welcomeSub');
+    const seeBtn = document.getElementById('seeBtn');
+    const switchBtn = document.getElementById('switchBtn');
+
+    const searchBox = document.getElementById('searchBox');
     const rollInput = document.getElementById('rollInput');
     const idInput = document.getElementById('idInput');
     const searchRollBtn = document.getElementById('searchRollBtn');
     const searchIdBtn = document.getElementById('searchIdBtn');
 
-    // Tabs
+    const resultHeader = document.getElementById('resultHeader');
+    const resultTitle = document.getElementById('resultTitle');
+    const backToWelcomeBtn = document.getElementById('backToWelcomeBtn');
+
+    const resultsEl = document.getElementById('results');
+    const initialMessage = document.getElementById('initialMessage');
+
+    const LS_ROLL = 'hf_roll';
+    const LS_NAME = 'hf_name';
+
+    // Track the current view's data source, so we can refresh correctly
+    let currentView = { type: null, value: null }; // type: 'roll' | 'id' | 'welcome'
+
+    // ---------- Tabs ----------
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -245,6 +322,7 @@
       });
     });
 
+    // ---------- Helpers ----------
     function formatDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleString();
@@ -258,6 +336,42 @@
         .replace(/"/g, '&quot;');
     }
 
+    // ---------- Views ----------
+    function showWelcomeView() {
+      const savedRoll = localStorage.getItem(LS_ROLL);
+      const savedName = localStorage.getItem(LS_NAME);
+
+      currentView = { type: 'welcome', value: null };
+
+      if (!savedRoll) {
+        welcomeCard.classList.add('hidden');
+        searchBox.classList.remove('hidden');
+        resultHeader.classList.add('hidden');
+        resultsEl.innerHTML = '';
+        if (initialMessage) {
+          initialMessage.style.display = 'block';
+          resultsEl.appendChild(initialMessage);
+        }
+        return;
+      }
+
+      welcomeCard.classList.remove('hidden');
+      searchBox.classList.add('hidden');
+      resultHeader.classList.add('hidden');
+      resultsEl.innerHTML = '';
+
+      welcomeTitle.textContent = savedName ? ('Welcome back, ' + savedName) : 'Welcome back';
+      welcomeSub.textContent = '(' + savedRoll + ')';
+    }
+
+    function showResultsView(title) {
+      welcomeCard.classList.add('hidden');
+      searchBox.classList.add('hidden');
+      resultHeader.classList.remove('hidden');
+      resultTitle.textContent = title;
+    }
+
+    // ---------- Card ----------
     function renderCard(c) {
       const div = document.createElement('div');
       div.className = `card status-${c.status} priority-${c.priority}`;
@@ -302,25 +416,40 @@
       return div;
     }
 
-    function renderList(list) {
+    function renderList(list, emptyMessage) {
+      resultsEl.innerHTML = '';
       if (!list || list.length === 0) {
-        resultsEl.innerHTML = '<div class="empty">No complaints found.</div>';
+        resultsEl.innerHTML = '<div class="empty">' +
+          (emptyMessage || 'No complaints found.') + '</div>';
         return;
       }
-      resultsEl.innerHTML = '';
       list.forEach(c => resultsEl.appendChild(renderCard(c)));
     }
 
-    async function searchByRoll() {
-      const roll = rollInput.value.trim();
+    // ---------- Search ----------
+    async function searchByRoll(roll, saveIt) {
       if (!roll) return;
+      currentView = { type: 'roll', value: roll };
       resultsEl.innerHTML = '<div class="loading">Searching...</div>';
       try {
         const res = await fetch('/api/complaints/by-roll/' + encodeURIComponent(roll));
         if (!res.ok) throw new Error();
         const data = await res.json();
+
+        if (saveIt && data.length > 0) {
+          localStorage.setItem(LS_ROLL, roll);
+          if (data[0].student_name) {
+            localStorage.setItem(LS_NAME, data[0].student_name);
+          }
+        }
+
+        const title = 'Complaints for ' + escapeHtml(roll) +
+          (data.length ? ' (' + data.length + ')' : '');
+        showResultsView(title);
+
         if (data.length === 0) {
-          resultsEl.innerHTML = '<div class="empty">No complaints found for roll number: ' + escapeHtml(roll) + '</div>';
+          resultsEl.innerHTML = '<div class="empty">No complaints found for roll ' +
+            escapeHtml(roll) + '</div>';
         } else {
           renderList(data);
         }
@@ -329,24 +458,28 @@
       }
     }
 
-    async function searchById() {
-      const id = idInput.value.trim();
+    async function searchById(id) {
       if (!id) return;
+      currentView = { type: 'id', value: id };
       resultsEl.innerHTML = '<div class="loading">Searching...</div>';
       try {
         const res = await fetch('/api/complaints/' + encodeURIComponent(id));
         if (res.status === 404) {
-          resultsEl.innerHTML = '<div class="empty">No complaint found with ID: ' + escapeHtml(id) + '</div>';
+          showResultsView('Complaint #' + id);
+          resultsEl.innerHTML = '<div class="empty">No complaint found with ID: ' +
+            escapeHtml(id) + '</div>';
           return;
         }
         if (!res.ok) throw new Error();
         const data = await res.json();
+        showResultsView('Complaint #' + id);
         renderList([data]);
       } catch (err) {
         resultsEl.innerHTML = '<div class="error">Could not reach server. Is the backend running?</div>';
       }
     }
 
+    // ---------- Student actions ----------
     async function studentConfirm(id) {
       try {
         const res = await fetch('/api/complaints/' + id, {
@@ -355,9 +488,7 @@
           body: JSON.stringify({ status: 'CLOSED', feedback: 'Student confirmed: fixed' })
         });
         if (!res.ok) throw new Error();
-        // Re-run the same search
-        if (document.querySelector('.tab.active').dataset.tab === 'roll') searchByRoll();
-        else searchById();
+        await refreshCurrentView();
       } catch (err) {
         alert('Could not update. Try again.');
       }
@@ -371,17 +502,61 @@
           body: JSON.stringify({ status: 'REOPENED', feedback: 'Student says: not fixed' })
         });
         if (!res.ok) throw new Error();
-        if (document.querySelector('.tab.active').dataset.tab === 'roll') searchByRoll();
-        else searchById();
+        await refreshCurrentView();
       } catch (err) {
         alert('Could not update. Try again.');
       }
     }
 
-    searchRollBtn.addEventListener('click', searchByRoll);
-    searchIdBtn.addEventListener('click', searchById);
-    rollInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchByRoll(); });
-    idInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchById(); });
+    async function refreshCurrentView() {
+      if (currentView.type === 'roll' && currentView.value) {
+        return searchByRoll(currentView.value, false);
+      }
+      if (currentView.type === 'id' && currentView.value) {
+        return searchById(currentView.value);
+      }
+      // Fallback: if a saved roll exists, use that
+      const savedRoll = localStorage.getItem(LS_ROLL);
+      if (savedRoll) return searchByRoll(savedRoll, false);
+    }
+
+    // ---------- Buttons ----------
+    seeBtn.addEventListener('click', () => {
+      const savedRoll = localStorage.getItem(LS_ROLL);
+      if (savedRoll) searchByRoll(savedRoll, false);
+    });
+
+    switchBtn.addEventListener('click', () => {
+      localStorage.removeItem(LS_ROLL);
+      localStorage.removeItem(LS_NAME);
+      rollInput.value = '';
+      idInput.value = '';
+      showWelcomeView();
+    });
+
+    backToWelcomeBtn.addEventListener('click', () => {
+      showWelcomeView();
+    });
+
+    searchRollBtn.addEventListener('click', () => {
+      const roll = rollInput.value.trim();
+      searchByRoll(roll, true);
+    });
+
+    searchIdBtn.addEventListener('click', () => {
+      const id = idInput.value.trim();
+      searchById(id);
+    });
+
+    rollInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') searchByRoll(rollInput.value.trim(), true);
+    });
+    idInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') searchById(idInput.value.trim());
+    });
+
+    // ---------- Init ----------
+    showWelcomeView();
   </script>
 </body>
 </html>

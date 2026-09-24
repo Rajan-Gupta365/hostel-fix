@@ -33,6 +33,29 @@
       margin-bottom: 8px;
     }
     .back:hover { background: #d3e2fb; }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-size: 13px;
+    }
+    .user-info strong { color: #0d3b66; }
+    .logout-btn {
+      background: #b3261e;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .logout-btn:hover { background: #8a1c16; }
     .stats { display: flex; gap: 12px; flex-wrap: wrap; }
     .stat {
       background: #ffffff;
@@ -42,6 +65,45 @@
       font-size: 13px;
     }
     .stat strong { color: #0d3b66; font-size: 15px; }
+
+    /* Search bar */
+    .search-bar {
+      max-width: 1100px;
+      margin: 0 auto 12px;
+      background: #ffffff;
+      padding: 12px 14px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-bar input.search {
+      flex: 1;
+      min-width: 220px;
+      padding: 10px 14px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    .search-bar input.search:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    .search-bar .clear-search {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
     .controls {
       max-width: 1100px;
       margin: 0 auto 16px;
@@ -54,12 +116,7 @@
       border-radius: 10px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
-    .controls label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #555;
-      margin-right: -4px;
-    }
+    .controls label { font-size: 12px; font-weight: 600; color: #555; margin-right: -4px; }
     .controls input, .controls select {
       padding: 8px 12px;
       border-radius: 6px;
@@ -79,18 +136,8 @@
       cursor: pointer;
       font-family: inherit;
     }
-    .controls button.primary:hover { background: #092a4a; }
-    .last-updated {
-      font-size: 12px;
-      color: #888;
-      margin-left: auto;
-    }
-    .list {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: grid;
-      gap: 12px;
-    }
+    .last-updated { font-size: 12px; color: #888; margin-left: auto; }
+    .list { max-width: 1100px; margin: 0 auto; display: grid; gap: 12px; }
     .card {
       background: #ffffff;
       border-radius: 10px;
@@ -116,11 +163,7 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-    .card-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0d3b66;
-    }
+    .card-title { font-size: 16px; font-weight: 700; color: #0d3b66; }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; }
     .badge {
       font-size: 11px;
@@ -140,11 +183,7 @@
     .badge.CLOSED     { background: #e8eaed; color: #555; }
     .badge.REOPENED   { background: #fdecea; color: #b3261e; }
     .badge.REJECTED   { background: #f0f0f0; color: #555; }
-    .meta {
-      font-size: 13px;
-      color: #555;
-      line-height: 1.55;
-    }
+    .meta { font-size: 13px; color: #555; line-height: 1.55; }
     .meta strong { color: #333; }
     .actions {
       display: flex;
@@ -178,13 +217,7 @@
     .actions button.resolve { background: #1e7e34; color: white; border-color: #1e7e34; }
     .actions button.reject  { background: #b3261e; color: white; border-color: #b3261e; }
     .actions button.reopen  { background: #f0ad00; color: #333; border-color: #f0ad00; }
-    .empty {
-      text-align: center;
-      padding: 40px;
-      color: #888;
-      background: #ffffff;
-      border-radius: 10px;
-    }
+    .empty { text-align: center; padding: 40px; color: #888; background: #ffffff; border-radius: 10px; }
     .loading { text-align: center; padding: 30px; color: #666; }
   </style>
 </head>
@@ -195,7 +228,22 @@
       <a href="index.html" class="back">← Home</a>
       <h1>Warden Dashboard</h1>
     </div>
-    <div class="stats" id="stats"></div>
+    <div class="user-info" id="userInfo" style="display:none;">
+      <span>👤 <strong id="userName"></strong> <span id="userRole"></span></span>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats" style="max-width:1100px; margin: 0 auto 12px;"></div>
+
+  <div class="search-bar">
+    <input
+      type="text"
+      class="search"
+      id="searchInput"
+      placeholder="🔍 Search by room number, student name, roll number, complaint ID, or problem..."
+    />
+    <button class="clear-search" id="clearSearchBtn">Clear</button>
   </div>
 
   <div class="controls">
@@ -227,11 +275,54 @@
     const statsEl = document.getElementById('stats');
     const filterStatusEl = document.getElementById('filterStatus');
     const filterHostelEl = document.getElementById('filterHostel');
+    const searchInputEl = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     const lastUpdatedEl = document.getElementById('lastUpdated');
+    const userInfoEl = document.getElementById('userInfo');
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
+    const logoutBtn = document.getElementById('logoutBtn');
 
     let allComplaints = [];
+    let currentUser = null;
 
+    // ---------------------------------------------
+    // Auth check
+    // ---------------------------------------------
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return false;
+        }
+        const data = await res.json();
+        currentUser = data.user;
+        userNameEl.textContent = currentUser.full_name || currentUser.username;
+        userRoleEl.textContent = '(' + currentUser.role +
+          (currentUser.hostel ? ' — ' + currentUser.hostel : '') + ')';
+        userInfoEl.style.display = 'flex';
+
+        if (currentUser.role === 'warden' && currentUser.hostel) {
+          filterHostelEl.value = currentUser.hostel;
+          filterHostelEl.disabled = true;
+        }
+        return true;
+      } catch (err) {
+        window.location.href = 'login.html';
+        return false;
+      }
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = 'login.html';
+    });
+
+    // ---------------------------------------------
+    // Helpers
+    // ---------------------------------------------
     function formatDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleString();
@@ -257,6 +348,9 @@
         .replace(/"/g, '&quot;');
     }
 
+    // ---------------------------------------------
+    // Stats
+    // ---------------------------------------------
     function renderStats() {
       const counts = {
         total: allComplaints.length,
@@ -282,12 +376,14 @@
       `;
     }
 
+    // ---------------------------------------------
+    // Card
+    // ---------------------------------------------
     function renderCard(c) {
       const div = document.createElement('div');
       div.className = `card priority-${c.priority} status-${c.status}`;
 
       const isFinal = c.status === 'CLOSED' || c.status === 'REJECTED';
-      const canReopen = c.status === 'CLOSED' || c.status === 'REJECTED';
 
       div.innerHTML = `
         <div class="card-top">
@@ -332,7 +428,7 @@
 
           if (action === 'REJECTED') {
             const reason = prompt('Reason for rejection (will be shown to student):');
-            if (reason === null) return; // cancelled
+            if (reason === null) return;
             updateComplaint(c.id, action, assignedTo, reason);
           } else {
             updateComplaint(c.id, action, assignedTo);
@@ -343,17 +439,40 @@
       return div;
     }
 
+    // ---------------------------------------------
+    // Render + Filter
+    // ---------------------------------------------
     function render() {
       const filterStatus = filterStatusEl.value;
       const filterHostel = filterHostelEl.value.trim().toLowerCase();
+      const search = searchInputEl.value.trim().toLowerCase();
 
       let filtered = allComplaints;
+
       if (filterStatus) filtered = filtered.filter(c => c.status === filterStatus);
       if (filterHostel) filtered = filtered.filter(c => c.hostel.toLowerCase().includes(filterHostel));
 
+      // Universal search across multiple fields
+      if (search) {
+        filtered = filtered.filter(c => {
+          const haystack = [
+            String(c.id),
+            c.room_number,
+            c.student_name,
+            c.student_roll,
+            c.hostel,
+            c.category,
+            c.subcategory,
+            c.description || '',
+            c.assigned_to || ''
+          ].join(' ').toLowerCase();
+          return haystack.includes(search);
+        });
+      }
+
       listEl.innerHTML = '';
       if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="empty">No complaints to show.</div>';
+        listEl.innerHTML = '<div class="empty">No complaints match your filters.</div>';
       } else {
         filtered.forEach(c => listEl.appendChild(renderCard(c)));
       }
@@ -363,6 +482,10 @@
     async function loadComplaints() {
       try {
         const res = await fetch('/api/complaints');
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
         if (!res.ok) throw new Error('Failed to load');
         allComplaints = await res.json();
         lastUpdatedEl.textContent = 'Updated: ' + new Date().toLocaleTimeString();
@@ -383,6 +506,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
         if (!res.ok) throw new Error('Update failed');
         await loadComplaints();
       } catch (err) {
@@ -392,10 +519,21 @@
 
     filterStatusEl.addEventListener('change', render);
     filterHostelEl.addEventListener('input', render);
+    searchInputEl.addEventListener('input', render);
+    clearSearchBtn.addEventListener('click', () => {
+      searchInputEl.value = '';
+      render();
+      searchInputEl.focus();
+    });
     refreshBtn.addEventListener('click', loadComplaints);
 
-    loadComplaints();
-    setInterval(loadComplaints, 15000);
+    (async () => {
+      const ok = await checkAuth();
+      if (ok) {
+        loadComplaints();
+        setInterval(loadComplaints, 15000);
+      }
+    })();
   </script>
 </body>
 </html>

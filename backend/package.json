@@ -7,10 +7,12 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "better-sqlite3": "^11.3.0",
     "cors": "^2.8.5",
     "dotenv": "^18.0.3",
     "express": "^4.19.2",
+    "express-session": "^1.19.0",
     "pg": "^8.23.0"
   }
 }

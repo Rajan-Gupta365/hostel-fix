@@ -4,8 +4,6 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Render provides DATABASE_URL in production.
-// Locally, .env file provides it.
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -16,8 +14,6 @@ if (!connectionString) {
 }
 
 // Render's external Postgres requires SSL.
-// We disable strict cert validation because Render uses valid certs but
-// pg's default rejects them unless we configure. Simple approach:
 const useSSL = connectionString.includes('render.com') ||
                connectionString.includes('sslmode=require');
 
@@ -26,9 +22,9 @@ const pool = new Pool({
   ssl: useSSL ? { rejectUnauthorized: false } : false
 });
 
-// Create table on startup
 async function initSchema() {
-  const createTableSQL = `
+  // Complaints table (unchanged)
+  const complaintsSQL = `
     CREATE TABLE IF NOT EXISTS complaints (
       id SERIAL PRIMARY KEY,
       student_name TEXT NOT NULL,
@@ -50,9 +46,35 @@ async function initSchema() {
     )
   `;
 
+  // Admins (Super Admin accounts)
+  const adminsSQL = `
+    CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      full_name TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Wardens (hostel staff accounts, created by Super Admin)
+  const wardensSQL = `
+    CREATE TABLE IF NOT EXISTS wardens (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      full_name TEXT,
+      hostel TEXT NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
   try {
-    await pool.query(createTableSQL);
-    console.log('Database schema ready (PostgreSQL)');
+    await pool.query(complaintsSQL);
+    await pool.query(adminsSQL);
+    await pool.query(wardensSQL);
+    console.log('Database schema ready (complaints, admins, wardens)');
   } catch (err) {
     console.error('Error creating schema:', err.message);
     throw err;
