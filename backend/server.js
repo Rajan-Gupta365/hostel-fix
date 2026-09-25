@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Gmail SMTP)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Gmail SMTP IPv4)
 
 const express = require('express');
 const cors = require('cors');
@@ -24,12 +24,22 @@ if (!EMAIL_USER || !EMAIL_PASSWORD) {
   console.error('WARNING: EMAIL_USER or EMAIL_PASSWORD not set. OTP emails will fail.');
 }
 
-// Gmail SMTP transporter (reused for all sends)
+// Gmail SMTP transporter (IPv4 + port 587 for cloud compatibility)
 const mailer = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  family: 4,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASSWORD
+  },
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000,
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -145,7 +155,6 @@ async function backfillComplaintCodes() {
   }
 }
 
-// Send OTP email via Gmail SMTP
 async function sendOTPEmail(toEmail, code) {
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
