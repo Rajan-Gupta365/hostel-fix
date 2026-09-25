@@ -18,138 +18,44 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
-    }
-    h1 { font-size: 22px; color: #0d3b66; }
-    .back {
-      font-size: 13px;
-      color: #0d3b66;
-      text-decoration: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      background: #e8f0fe;
-    }
-    .back:hover { background: #d3e2fb; }
-
-    .welcome-card {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 32px 24px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-      text-align: center;
-      margin-bottom: 18px;
-    }
-    .welcome-emoji { font-size: 48px; margin-bottom: 10px; }
-    .welcome-title { font-size: 20px; color: #0d3b66; margin-bottom: 4px; font-weight: 700; }
-    .welcome-sub { font-size: 14px; color: #666; margin-bottom: 22px; }
-    .see-btn {
-      display: inline-block;
-      padding: 14px 28px;
-      background: #0d3b66;
-      color: #ffffff;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s;
-    }
-    .see-btn:hover { background: #092a4a; }
-    .switch-link {
-      display: inline-block;
-      margin-top: 18px;
-      font-size: 13px;
-      color: #666;
-      text-decoration: underline;
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-family: inherit;
-    }
-    .switch-link:hover { color: #0d3b66; }
-
-    .search-box {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-      margin-bottom: 18px;
-    }
-    .tabs {
-      display: flex;
-      gap: 6px;
       margin-bottom: 16px;
-      border-bottom: 1px solid #e0e4e8;
-    }
-    .tab {
-      padding: 10px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      color: #666;
-      border-bottom: 3px solid transparent;
-      background: none;
-      border-top: none;
-      border-left: none;
-      border-right: none;
-      font-family: inherit;
-    }
-    .tab.active { color: #0d3b66; border-bottom-color: #0d3b66; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #333;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ccd3da;
-      border-radius: 8px;
-      font-size: 15px;
-      font-family: inherit;
-      background: #fafbfc;
-    }
-    input[type="text"]:focus { outline: none; border-color: #0d3b66; background: #ffffff; }
-    button.search-btn {
-      margin-top: 12px;
-      padding: 11px 20px;
-      background: #0d3b66;
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    button.search-btn:hover { background: #092a4a; }
-
-    .result-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
       flex-wrap: wrap;
       gap: 10px;
     }
-    .result-title { font-size: 16px; font-weight: 700; color: #0d3b66; }
-    .back-to-welcome {
-      font-size: 13px;
-      color: #0d3b66;
-      text-decoration: none;
+    h1 { font-size: 22px; color: #0d3b66; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-links a, .nav-links button {
+      font-size: 12px;
+      font-weight: 600;
       padding: 6px 12px;
       border-radius: 6px;
-      background: #e8f0fe;
       border: none;
       cursor: pointer;
+      text-decoration: none;
       font-family: inherit;
     }
-    .back-to-welcome:hover { background: #d3e2fb; }
+    .nav-links a {
+      background: #e8f0fe;
+      color: #0d3b66;
+    }
+    .nav-links a:hover { background: #d3e2fb; }
+    .nav-links button.logout {
+      background: #b3261e;
+      color: #ffffff;
+    }
+    .nav-links button.logout:hover { background: #8a1c16; }
+
+    .welcome-box {
+      background: #f4f8ff;
+      border: 1px solid #d6e4f7;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #1a4fa0;
+      line-height: 1.5;
+    }
+    .welcome-box strong { color: #0d3b66; }
 
     .results { display: grid; gap: 12px; }
     .card {
@@ -177,7 +83,18 @@
       flex-wrap: wrap;
       margin-bottom: 8px;
     }
-    .card-title { font-size: 16px; font-weight: 700; color: #0d3b66; }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d3b66;
+      font-family: monospace;
+    }
+    .card-subtitle {
+      font-size: 14px;
+      color: #333;
+      font-weight: 600;
+      margin-top: 2px;
+    }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; }
     .badge {
       font-size: 11px;
@@ -221,157 +138,77 @@
     .actions button.reopen  { background: #b3261e; color: white; border-color: #b3261e; }
     .actions button:hover { opacity: 0.9; }
 
-    .empty, .loading {
+    .empty {
       text-align: center;
-      padding: 26px;
-      color: #888;
+      padding: 40px 24px;
+      color: #666;
       background: #ffffff;
       border-radius: 10px;
       font-size: 14px;
     }
+    .empty .icon { font-size: 40px; margin-bottom: 10px; display: block; }
+    .empty a {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 20px;
+      background: #0d3b66;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .empty a:hover { background: #092a4a; }
+    .loading { text-align: center; padding: 40px; color: #666; font-size: 14px; }
     .error {
       padding: 14px;
       background: #fdecea;
       color: #b3261e;
       border-radius: 10px;
       font-size: 14px;
+      text-align: center;
     }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div class="container">
+
     <div class="topbar">
       <h1>My Complaints</h1>
-      <a href="index.html" class="back">← Home</a>
-    </div>
-
-    <div class="welcome-card hidden" id="welcomeCard">
-      <div class="welcome-emoji">👋</div>
-      <div class="welcome-title" id="welcomeTitle">Welcome back</div>
-      <div class="welcome-sub" id="welcomeSub"></div>
-      <button class="see-btn" id="seeBtn">📋 See My Complaints</button>
-      <br>
-      <button class="switch-link" id="switchBtn">Not you? Switch student</button>
-    </div>
-
-    <div class="search-box" id="searchBox">
-      <div class="tabs">
-        <button class="tab active" data-tab="roll">By Roll Number</button>
-        <button class="tab" data-tab="id">By Complaint ID</button>
-      </div>
-
-      <div class="tab-panel active" id="panel-roll">
-        <label for="rollInput">Enter your Roll Number</label>
-        <input type="text" id="rollInput" placeholder="e.g., CSE2021045" />
-        <button class="search-btn" id="searchRollBtn">Search</button>
-      </div>
-
-      <div class="tab-panel" id="panel-id">
-        <label for="idInput">Enter Complaint ID</label>
-        <input type="text" id="idInput" placeholder="e.g., 1" />
-        <button class="search-btn" id="searchIdBtn">Search</button>
+      <div class="nav-links">
+        <a href="student.html">+ New Complaint</a>
+        <a href="change-password.html">Change Password</a>
+        <button class="logout" id="logoutBtn">Logout</button>
       </div>
     </div>
 
-    <div class="result-header hidden" id="resultHeader">
-      <div class="result-title" id="resultTitle"></div>
-      <button class="back-to-welcome" id="backToWelcomeBtn">← Back</button>
-    </div>
+    <div class="welcome-box hidden" id="welcomeBox"></div>
 
     <div class="results" id="results">
-      <div class="empty" id="initialMessage">
-        Enter your roll number or complaint ID above to see your complaints.
-      </div>
+      <div class="loading">Loading your complaints...</div>
     </div>
   </div>
 
   <script>
-    const welcomeCard = document.getElementById('welcomeCard');
-    const welcomeTitle = document.getElementById('welcomeTitle');
-    const welcomeSub = document.getElementById('welcomeSub');
-    const seeBtn = document.getElementById('seeBtn');
-    const switchBtn = document.getElementById('switchBtn');
-
-    const searchBox = document.getElementById('searchBox');
-    const rollInput = document.getElementById('rollInput');
-    const idInput = document.getElementById('idInput');
-    const searchRollBtn = document.getElementById('searchRollBtn');
-    const searchIdBtn = document.getElementById('searchIdBtn');
-
-    const resultHeader = document.getElementById('resultHeader');
-    const resultTitle = document.getElementById('resultTitle');
-    const backToWelcomeBtn = document.getElementById('backToWelcomeBtn');
-
     const resultsEl = document.getElementById('results');
-    const initialMessage = document.getElementById('initialMessage');
+    const welcomeBox = document.getElementById('welcomeBox');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-    const LS_ROLL = 'hf_roll';
-    const LS_NAME = 'hf_name';
+    let currentUser = null;
 
-    // Track the current view's data source, so we can refresh correctly
-    let currentView = { type: null, value: null }; // type: 'roll' | 'id' | 'welcome'
-
-    // ---------- Tabs ----------
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-      });
-    });
-
-    // ---------- Helpers ----------
     function formatDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleString();
     }
 
     function escapeHtml(str) {
-      return String(str)
+      return String(str || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
     }
 
-    // ---------- Views ----------
-    function showWelcomeView() {
-      const savedRoll = localStorage.getItem(LS_ROLL);
-      const savedName = localStorage.getItem(LS_NAME);
-
-      currentView = { type: 'welcome', value: null };
-
-      if (!savedRoll) {
-        welcomeCard.classList.add('hidden');
-        searchBox.classList.remove('hidden');
-        resultHeader.classList.add('hidden');
-        resultsEl.innerHTML = '';
-        if (initialMessage) {
-          initialMessage.style.display = 'block';
-          resultsEl.appendChild(initialMessage);
-        }
-        return;
-      }
-
-      welcomeCard.classList.remove('hidden');
-      searchBox.classList.add('hidden');
-      resultHeader.classList.add('hidden');
-      resultsEl.innerHTML = '';
-
-      welcomeTitle.textContent = savedName ? ('Welcome back, ' + savedName) : 'Welcome back';
-      welcomeSub.textContent = '(' + savedRoll + ')';
-    }
-
-    function showResultsView(title) {
-      welcomeCard.classList.add('hidden');
-      searchBox.classList.add('hidden');
-      resultHeader.classList.remove('hidden');
-      resultTitle.textContent = title;
-    }
-
-    // ---------- Card ----------
     function renderCard(c) {
       const div = document.createElement('div');
       div.className = `card status-${c.status} priority-${c.priority}`;
@@ -382,15 +219,16 @@
       div.innerHTML = `
         <div class="card-top">
           <div>
-            <div class="card-title">#${c.id} · ${escapeHtml(c.subcategory)}</div>
-            <div class="meta">
+            <div class="card-title">${escapeHtml(c.complaint_code || ('HF-' + String(c.id).padStart(4, '0')))}</div>
+            <div class="card-subtitle">${escapeHtml(c.subcategory)}</div>
+            <div class="meta" style="margin-top:8px;">
               Room <strong>${escapeHtml(c.room_number)}</strong>, ${escapeHtml(c.hostel)}<br>
               Category: ${escapeHtml(c.category)}<br>
               Submitted: ${formatDate(c.created_at)}
               ${c.assigned_to ? '<br>Assigned to: ' + escapeHtml(c.assigned_to) : ''}
               ${c.resolved_at ? '<br>Resolved: ' + formatDate(c.resolved_at) : ''}
               ${c.description ? '<br>Note: ' + escapeHtml(c.description) : ''}
-              ${c.feedback ? '<br><strong>Your feedback:</strong> ' + escapeHtml(c.feedback) : ''}
+              ${c.feedback ? '<br><strong>Feedback:</strong> ' + escapeHtml(c.feedback) : ''}
             </div>
           </div>
           <div class="badges">
@@ -400,86 +238,55 @@
         </div>
         ${(canConfirm || canReopen) ? `
         <div class="actions">
-          ${canConfirm ? '<button class="confirm" data-action="CONFIRM">✅ It\'s fixed</button>' : ''}
-          ${canReopen ? '<button class="reopen" data-action="REOPEN">❌ Not fixed — Reopen</button>' : ''}
+          ${canConfirm ? '<button class="confirm" data-action="CONFIRM" data-id="' + c.id + '">✅ It\'s fixed</button>' : ''}
+          ${canReopen ? '<button class="reopen" data-action="REOPEN" data-id="' + c.id + '">❌ Not fixed — Reopen</button>' : ''}
         </div>` : ''}
       `;
 
       div.querySelectorAll('button[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
           const action = btn.getAttribute('data-action');
-          if (action === 'CONFIRM') studentConfirm(c.id);
-          if (action === 'REOPEN')  studentReopen(c.id);
+          const id = btn.getAttribute('data-id');
+          if (action === 'CONFIRM') studentConfirm(id);
+          if (action === 'REOPEN')  studentReopen(id);
         });
       });
 
       return div;
     }
 
-    function renderList(list, emptyMessage) {
-      resultsEl.innerHTML = '';
-      if (!list || list.length === 0) {
-        resultsEl.innerHTML = '<div class="empty">' +
-          (emptyMessage || 'No complaints found.') + '</div>';
-        return;
-      }
-      list.forEach(c => resultsEl.appendChild(renderCard(c)));
+    function renderEmpty() {
+      resultsEl.innerHTML = `
+        <div class="empty">
+          <span class="icon">📭</span>
+          <div>You haven't reported anything yet.</div>
+          <a href="student.html">Report a Problem →</a>
+        </div>
+      `;
     }
 
-    // ---------- Search ----------
-    async function searchByRoll(roll, saveIt) {
-      if (!roll) return;
-      currentView = { type: 'roll', value: roll };
-      resultsEl.innerHTML = '<div class="loading">Searching...</div>';
+    async function loadMyComplaints() {
+      resultsEl.innerHTML = '<div class="loading">Loading your complaints...</div>';
       try {
-        const res = await fetch('/api/complaints/by-roll/' + encodeURIComponent(roll));
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-
-        if (saveIt && data.length > 0) {
-          localStorage.setItem(LS_ROLL, roll);
-          if (data[0].student_name) {
-            localStorage.setItem(LS_NAME, data[0].student_name);
-          }
-        }
-
-        const title = 'Complaints for ' + escapeHtml(roll) +
-          (data.length ? ' (' + data.length + ')' : '');
-        showResultsView(title);
-
-        if (data.length === 0) {
-          resultsEl.innerHTML = '<div class="empty">No complaints found for roll ' +
-            escapeHtml(roll) + '</div>';
-        } else {
-          renderList(data);
-        }
-      } catch (err) {
-        resultsEl.innerHTML = '<div class="error">Could not reach server. Is the backend running?</div>';
-      }
-    }
-
-    async function searchById(id) {
-      if (!id) return;
-      currentView = { type: 'id', value: id };
-      resultsEl.innerHTML = '<div class="loading">Searching...</div>';
-      try {
-        const res = await fetch('/api/complaints/' + encodeURIComponent(id));
-        if (res.status === 404) {
-          showResultsView('Complaint #' + id);
-          resultsEl.innerHTML = '<div class="empty">No complaint found with ID: ' +
-            escapeHtml(id) + '</div>';
+        const res = await fetch('/api/student/my-complaints');
+        if (res.status === 401) {
+          window.location.href = 'student-login.html';
           return;
         }
         if (!res.ok) throw new Error();
-        const data = await res.json();
-        showResultsView('Complaint #' + id);
-        renderList([data]);
+        const list = await res.json();
+
+        if (!list || list.length === 0) {
+          renderEmpty();
+        } else {
+          resultsEl.innerHTML = '';
+          list.forEach(c => resultsEl.appendChild(renderCard(c)));
+        }
       } catch (err) {
-        resultsEl.innerHTML = '<div class="error">Could not reach server. Is the backend running?</div>';
+        resultsEl.innerHTML = '<div class="error">Could not load your complaints. Try refreshing.</div>';
       }
     }
 
-    // ---------- Student actions ----------
     async function studentConfirm(id) {
       try {
         const res = await fetch('/api/complaints/' + id, {
@@ -488,7 +295,7 @@
           body: JSON.stringify({ status: 'CLOSED', feedback: 'Student confirmed: fixed' })
         });
         if (!res.ok) throw new Error();
-        await refreshCurrentView();
+        await loadMyComplaints();
       } catch (err) {
         alert('Could not update. Try again.');
       }
@@ -502,61 +309,39 @@
           body: JSON.stringify({ status: 'REOPENED', feedback: 'Student says: not fixed' })
         });
         if (!res.ok) throw new Error();
-        await refreshCurrentView();
+        await loadMyComplaints();
       } catch (err) {
         alert('Could not update. Try again.');
       }
     }
 
-    async function refreshCurrentView() {
-      if (currentView.type === 'roll' && currentView.value) {
-        return searchByRoll(currentView.value, false);
-      }
-      if (currentView.type === 'id' && currentView.value) {
-        return searchById(currentView.value);
-      }
-      // Fallback: if a saved roll exists, use that
-      const savedRoll = localStorage.getItem(LS_ROLL);
-      if (savedRoll) return searchByRoll(savedRoll, false);
-    }
-
-    // ---------- Buttons ----------
-    seeBtn.addEventListener('click', () => {
-      const savedRoll = localStorage.getItem(LS_ROLL);
-      if (savedRoll) searchByRoll(savedRoll, false);
-    });
-
-    switchBtn.addEventListener('click', () => {
-      localStorage.removeItem(LS_ROLL);
-      localStorage.removeItem(LS_NAME);
-      rollInput.value = '';
-      idInput.value = '';
-      showWelcomeView();
-    });
-
-    backToWelcomeBtn.addEventListener('click', () => {
-      showWelcomeView();
-    });
-
-    searchRollBtn.addEventListener('click', () => {
-      const roll = rollInput.value.trim();
-      searchByRoll(roll, true);
-    });
-
-    searchIdBtn.addEventListener('click', () => {
-      const id = idInput.value.trim();
-      searchById(id);
-    });
-
-    rollInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') searchByRoll(rollInput.value.trim(), true);
-    });
-    idInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') searchById(idInput.value.trim());
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = 'student-login.html';
     });
 
     // ---------- Init ----------
-    showWelcomeView();
+    (async () => {
+      try {
+        const meRes = await fetch('/api/student/me');
+        if (meRes.status === 401) {
+          window.location.href = 'student-login.html';
+          return;
+        }
+        const data = await meRes.json();
+        currentUser = data.user;
+
+        welcomeBox.innerHTML = '👋 <strong>' + escapeHtml(currentUser.full_name) +
+          '</strong> — ' + escapeHtml(currentUser.roll_number) + ', ' +
+          escapeHtml(currentUser.hostel) + ', Room ' +
+          escapeHtml(currentUser.room_number);
+        welcomeBox.classList.remove('hidden');
+
+        loadMyComplaints();
+      } catch (err) {
+        window.location.href = 'student-login.html';
+      }
+    })();
   </script>
 </body>
 </html>

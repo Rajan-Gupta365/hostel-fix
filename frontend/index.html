@@ -25,10 +25,7 @@
       box-shadow: 0 12px 40px rgba(0,0,0,0.2);
       text-align: center;
     }
-    .logo {
-      font-size: 44px;
-      margin-bottom: 6px;
-    }
+    .logo { font-size: 44px; margin-bottom: 6px; }
     h1 {
       font-size: 28px;
       color: #0d3b66;
@@ -37,19 +34,30 @@
     .subtitle {
       font-size: 15px;
       color: #666;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       line-height: 1.5;
     }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      text-align: left;
+      margin: 18px 0 8px;
+    }
+    .section-title:first-of-type { margin-top: 0; }
     .buttons {
       display: grid;
-      gap: 14px;
+      gap: 10px;
+      margin-bottom: 10px;
     }
     .btn {
       display: block;
       text-decoration: none;
-      padding: 18px 20px;
+      padding: 16px 18px;
       border-radius: 12px;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       transition: transform 0.15s, box-shadow 0.15s;
       text-align: left;
@@ -58,31 +66,33 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(0,0,0,0.15);
     }
-    .btn .btn-title {
-      display: block;
-      margin-bottom: 4px;
-    }
+    .btn .btn-title { display: block; margin-bottom: 4px; }
     .btn .btn-desc {
       display: block;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 400;
       opacity: 0.85;
     }
-    .btn-student {
+    .btn-primary {
       background: #0d3b66;
       color: #ffffff;
     }
-    .btn-status {
+    .btn-secondary {
       background: #e8f0fe;
       color: #0d3b66;
     }
-    .btn-warden {
+    .btn-staff {
       background: #f4f6f8;
       color: #0d3b66;
       border: 2px solid #d0d7de;
     }
+    .divider {
+      height: 1px;
+      background: #e0e4e8;
+      margin: 20px 0 8px;
+    }
     .footer {
-      margin-top: 26px;
+      margin-top: 22px;
       font-size: 12px;
       color: #999;
       line-height: 1.5;
@@ -95,26 +105,30 @@
     <h1>Hostel Fix</h1>
     <p class="subtitle">Report and track hostel problems quickly and easily.</p>
 
+    <div class="section-title">For Students</div>
     <div class="buttons">
-      <a href="student.html" class="btn btn-student">
-        <span class="btn-title">📝 Report a Problem</span>
-        <span class="btn-desc">Submit a new complaint about your room or hostel</span>
+      <a href="student-login.html" class="btn btn-primary">
+        <span class="btn-title">🔑 Log In</span>
+        <span class="btn-desc">Already registered? Log in to report or track</span>
       </a>
-
-      <a href="my-complaints.html" class="btn btn-status">
-        <span class="btn-title">🔍 Check My Complaint</span>
-        <span class="btn-desc">Track the status of complaints you already submitted</span>
+      <a href="signup.html" class="btn btn-secondary">
+        <span class="btn-title">📝 Sign Up</span>
+        <span class="btn-desc">New here? Create your account in 1 minute</span>
       </a>
+    </div>
 
-      <a href="warden.html" class="btn btn-warden">
-        <span class="btn-title">🛠️ Warden Dashboard</span>
-        <span class="btn-desc">View, assign, and resolve complaints</span>
+    <div class="divider"></div>
+
+    <div class="section-title">For Wardens &amp; Admins</div>
+    <div class="buttons">
+      <a href="login.html" class="btn btn-staff">
+        <span class="btn-title">🛠️ Warden / Admin Login</span>
+        <span class="btn-desc">Manage complaints, assign, resolve</span>
       </a>
     </div>
 
     <div class="footer">
-      Hostel Fix · Pilot version<br>
-      Anonymous-free, focused on fast resolution
+      Hostel Fix · Pilot version
     </div>
   </div>
 </body>

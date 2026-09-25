@@ -173,7 +173,18 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-    .card-title { font-size: 16px; font-weight: 700; color: #0d3b66; }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d3b66;
+      font-family: monospace;
+    }
+    .card-subtitle {
+      font-size: 14px;
+      color: #333;
+      font-weight: 600;
+      margin-top: 2px;
+    }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; }
     .badge {
       font-size: 11px;
@@ -253,7 +264,7 @@
       type="text"
       class="search"
       id="searchInput"
-      placeholder="🔍 Search by room number, student name, roll number, complaint ID, or problem..."
+      placeholder="🔍 Search by complaint code (HF-0047), room number, student name, roll number, or problem..."
     />
     <button class="clear-search" id="clearSearchBtn">Clear</button>
   </div>
@@ -314,7 +325,6 @@
           (currentUser.hostel ? ' — ' + currentUser.hostel : '') + ')';
         userInfoEl.style.display = 'flex';
 
-        // Show Admin Panel link only for admins
         if (currentUser.role === 'admin') {
           adminLink.style.display = 'inline-block';
         }
@@ -353,11 +363,15 @@
     }
 
     function escapeHtml(str) {
-      return String(str)
+      return String(str || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    function complaintCode(c) {
+      return c.complaint_code || ('HF-' + String(c.id).padStart(4, '0'));
     }
 
     function renderStats() {
@@ -393,8 +407,9 @@
       div.innerHTML = `
         <div class="card-top">
           <div>
-            <div class="card-title">#${c.id} · Room ${escapeHtml(c.room_number)} · ${escapeHtml(c.subcategory)}</div>
-            <div class="meta">
+            <div class="card-title">${escapeHtml(complaintCode(c))}</div>
+            <div class="card-subtitle">Room ${escapeHtml(c.room_number)} · ${escapeHtml(c.subcategory)}</div>
+            <div class="meta" style="margin-top:8px;">
               <strong>${escapeHtml(c.student_name)}</strong> (${escapeHtml(c.student_roll)}) · ${escapeHtml(c.hostel)}<br>
               Category: ${escapeHtml(c.category)} · Submitted: ${formatDate(c.created_at)} (${timeAgo(c.created_at)})
               ${c.description ? '<br>Note: ' + escapeHtml(c.description) : ''}
@@ -457,8 +472,15 @@
       if (search) {
         filtered = filtered.filter(c => {
           const haystack = [
-            String(c.id), c.room_number, c.student_name, c.student_roll,
-            c.hostel, c.category, c.subcategory, c.description || '',
+            String(c.id),
+            c.complaint_code || '',
+            c.room_number,
+            c.student_name,
+            c.student_roll,
+            c.hostel,
+            c.category,
+            c.subcategory,
+            c.description || '',
             c.assigned_to || ''
           ].join(' ').toLowerCase();
           return haystack.includes(search);

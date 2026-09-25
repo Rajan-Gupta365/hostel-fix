@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Fix — Student Sign Up</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #0d3b66 0%, #1a4fa0 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .container {
+      max-width: 460px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      margin-top: 20px;
+    }
+    .logo { font-size: 40px; text-align: center; margin-bottom: 6px; }
+    h1 {
+      font-size: 22px;
+      color: #0d3b66;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .step-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 22px;
+      font-size: 12px;
+      color: #999;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .step .dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #e0e4e8;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .step.active .dot { background: #0d3b66; color: #ffffff; }
+    .step.done .dot { background: #1e7e34; color: #ffffff; }
+    .step.active { color: #0d3b66; font-weight: 700; }
+    .step.done { color: #1e7e34; font-weight: 700; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      margin-top: 14px;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    input.otp {
+      font-size: 22px;
+      letter-spacing: 8px;
+      text-align: center;
+      font-family: monospace;
+      font-weight: 700;
+    }
+    button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px;
+      background: #0d3b66;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { background: #092a4a; }
+    button:disabled { background: #8899aa; cursor: not-allowed; }
+    button.link-btn {
+      background: transparent;
+      color: #0d3b66;
+      text-decoration: underline;
+      font-size: 13px;
+      padding: 6px;
+      margin-top: 10px;
+      width: auto;
+    }
+    button.link-btn:hover { background: transparent; }
+    .message {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+      line-height: 1.5;
+    }
+    .message.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .message.error   { background: #fdecea; color: #b3261e; display: block; }
+    .message.info    { background: #e8f0fe; color: #1a4fa0; display: block; }
+    .email-chip {
+      display: inline-block;
+      background: #f4f6f8;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #0d3b66;
+      margin-top: 6px;
+    }
+    .links {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    .links a {
+      color: #0d3b66;
+      text-decoration: none;
+    }
+    .links a:hover { text-decoration: underline; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🎓</div>
+    <h1>Student Sign Up</h1>
+    <p class="subtitle">One-time setup. After this, complaints take 10 seconds.</p>
+
+    <div class="step-indicator">
+      <div class="step active" id="stepDot1">
+        <span class="dot">1</span>
+        <span>Verify Email</span>
+      </div>
+      <div class="step" id="stepDot2">
+        <span class="dot">2</span>
+        <span>Your Details</span>
+      </div>
+    </div>
+
+    <!-- STEP 1: Email + Request OTP -->
+    <div id="step1">
+      <label for="email">College Email Address</label>
+      <input type="email" id="email" placeholder="e.g., abc@kiit.ac.in" autocomplete="email" />
+      <button id="sendOtpBtn">Send Verification Code</button>
+      <div class="message" id="msg1"></div>
+    </div>
+
+    <!-- STEP 2: OTP + Details -->
+    <div id="step2" class="hidden">
+      <div class="message info">
+        Code sent to <span class="email-chip" id="sentEmail"></span>
+        <br><small>Didn't receive? Check spam folder, or <button class="link-btn" id="backToStep1Btn" style="margin:0;">change email</button></small>
+      </div>
+
+      <label for="code">6-Digit Verification Code</label>
+      <input type="text" id="code" class="otp" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="------" />
+
+      <label for="full_name">Full Name</label>
+      <input type="text" id="full_name" placeholder="e.g., Rahul Sharma" autocomplete="name" />
+
+      <label for="roll_number">Roll Number</label>
+      <input type="text" id="roll_number" placeholder="e.g., CSE2021045" />
+
+      <label for="hostel">Hostel</label>
+      <input type="text" id="hostel" placeholder="e.g., Hostel B" />
+
+      <label for="room_number">Room Number</label>
+      <input type="text" id="room_number" placeholder="e.g., 214" />
+
+      <label for="password">Create Password (min 8 chars)</label>
+      <input type="password" id="password" placeholder="At least 8 characters" autocomplete="new-password" />
+
+      <button id="registerBtn">Complete Sign Up</button>
+      <div class="message" id="msg2"></div>
+    </div>
+
+    <div class="links">
+      <a href="student-login.html">Already have an account? Log in</a>
+      <a href="index.html">Home</a>
+    </div>
+  </div>
+
+  <script>
+    let pendingEmail = '';
+
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const stepDot1 = document.getElementById('stepDot1');
+    const stepDot2 = document.getElementById('stepDot2');
+    const emailInput = document.getElementById('email');
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    const msg1 = document.getElementById('msg1');
+    const msg2 = document.getElementById('msg2');
+    const sentEmail = document.getElementById('sentEmail');
+    const codeInput = document.getElementById('code');
+    const registerBtn = document.getElementById('registerBtn');
+    const backToStep1Btn = document.getElementById('backToStep1Btn');
+
+    function showMsg(el, text, type) {
+      el.innerHTML = text;
+      el.className = 'message ' + type;
+    }
+
+    // Step 1: Send OTP
+    sendOtpBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim().toLowerCase();
+      if (!email) {
+        showMsg(msg1, 'Please enter your email address.', 'error');
+        return;
+      }
+
+      sendOtpBtn.disabled = true;
+      sendOtpBtn.textContent = 'Sending...';
+      msg1.className = 'message';
+
+      try {
+        const res = await fetch('/api/student/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg(msg1, data.error || 'Failed to send code', 'error');
+        } else {
+          pendingEmail = email;
+          sentEmail.textContent = email;
+          step1.classList.add('hidden');
+          step2.classList.remove('hidden');
+          stepDot1.classList.remove('active');
+          stepDot1.classList.add('done');
+          stepDot2.classList.add('active');
+          codeInput.focus();
+        }
+      } catch (err) {
+        showMsg(msg1, 'Cannot reach server. Is the backend running?', 'error');
+      } finally {
+        sendOtpBtn.disabled = false;
+        sendOtpBtn.textContent = 'Send Verification Code';
+      }
+    });
+
+    // Back to step 1
+    backToStep1Btn.addEventListener('click', () => {
+      step2.classList.add('hidden');
+      step1.classList.remove('hidden');
+      stepDot1.classList.remove('done');
+      stepDot1.classList.add('active');
+      stepDot2.classList.remove('active');
+      msg2.className = 'message';
+    });
+
+    // Step 2: Register
+    registerBtn.addEventListener('click', async () => {
+      const payload = {
+        email: pendingEmail,
+        code: codeInput.value.trim(),
+        full_name: document.getElementById('full_name').value.trim(),
+        roll_number: document.getElementById('roll_number').value.trim(),
+        hostel: document.getElementById('hostel').value.trim(),
+        room_number: document.getElementById('room_number').value.trim(),
+        password: document.getElementById('password').value
+      };
+
+      // Simple validation
+      if (!payload.code || payload.code.length !== 6) {
+        showMsg(msg2, 'Please enter the 6-digit code from your email.', 'error');
+        return;
+      }
+      if (!payload.full_name || !payload.roll_number || !payload.hostel || !payload.room_number) {
+        showMsg(msg2, 'Please fill all your details.', 'error');
+        return;
+      }
+      if (payload.password.length < 8) {
+        showMsg(msg2, 'Password must be at least 8 characters.', 'error');
+        return;
+      }
+
+      registerBtn.disabled = true;
+      registerBtn.textContent = 'Creating account...';
+      msg2.className = 'message';
+
+      try {
+        const res = await fetch('/api/student/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg(msg2, data.error || 'Registration failed.', 'error');
+        } else {
+          showMsg(msg2, '✅ Account created! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = 'student.html';
+          }, 1200);
+        }
+      } catch (err) {
+        showMsg(msg2, 'Cannot reach server. Is the backend running?', 'error');
+      } finally {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Complete Sign Up';
+      }
+    });
+
+    // Auto-focus OTP input when it becomes visible
+    codeInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+  </script>
+</body>
+</html>

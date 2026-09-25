@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hostel Fix — Student Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #0d3b66 0%, #1a4fa0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    }
+    .logo { font-size: 40px; text-align: center; margin-bottom: 6px; }
+    h1 {
+      font-size: 22px;
+      color: #0d3b66;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      margin-top: 14px;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 13px;
+      background: #0d3b66;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { background: #092a4a; }
+    button:disabled { background: #8899aa; cursor: not-allowed; }
+    .message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    .message.error { background: #fdecea; color: #b3261e; display: block; }
+    .message.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .links {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 18px;
+      font-size: 13px;
+    }
+    .links a {
+      color: #0d3b66;
+      text-decoration: none;
+    }
+    .links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🎓</div>
+    <h1>Student Login</h1>
+    <p class="subtitle">Log in to track your complaints</p>
+
+    <form id="loginForm">
+      <label for="email">College Email</label>
+      <input type="email" id="email" required autocomplete="email" placeholder="e.g., abc@kiit.ac.in" />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required autocomplete="current-password" />
+
+      <button type="submit" id="loginBtn">Log In</button>
+
+      <div id="message" class="message"></div>
+    </form>
+
+    <div class="links">
+      <a href="signup.html">New here? Sign up</a>
+      <a href="index.html">Home</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const messageBox = document.getElementById('message');
+
+    function showMessage(text, type) {
+      messageBox.textContent = text;
+      messageBox.className = 'message ' + type;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Logging in...';
+      messageBox.className = 'message';
+
+      const payload = {
+        email: document.getElementById('email').value.trim().toLowerCase(),
+        password: document.getElementById('password').value
+      };
+
+      try {
+        const res = await fetch('/api/student/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMessage(data.error || 'Login failed', 'error');
+        } else {
+          showMessage('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = 'student.html';
+          }, 600);
+        }
+      } catch (err) {
+        showMessage('Cannot reach server. Is the backend running?', 'error');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Log In';
+      }
+    });
+  </script>
+</body>
+</html>

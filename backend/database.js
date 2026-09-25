@@ -13,7 +13,6 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Render's external Postgres requires SSL.
 const useSSL = connectionString.includes('render.com') ||
                connectionString.includes('sslmode=require');
 
@@ -23,10 +22,11 @@ const pool = new Pool({
 });
 
 async function initSchema() {
-  // Complaints table (unchanged)
+  // Complaints table (with complaint_code)
   const complaintsSQL = `
     CREATE TABLE IF NOT EXISTS complaints (
       id SERIAL PRIMARY KEY,
+      complaint_code TEXT UNIQUE,
       student_name TEXT NOT NULL,
       student_roll TEXT NOT NULL,
       room_number TEXT NOT NULL,
@@ -46,7 +46,7 @@ async function initSchema() {
     )
   `;
 
-  // Admins (Super Admin accounts)
+  // Admins
   const adminsSQL = `
     CREATE TABLE IF NOT EXISTS admins (
       id SERIAL PRIMARY KEY,
@@ -57,7 +57,7 @@ async function initSchema() {
     )
   `;
 
-  // Wardens (hostel staff accounts, created by Super Admin)
+  // Wardens
   const wardensSQL = `
     CREATE TABLE IF NOT EXISTS wardens (
       id SERIAL PRIMARY KEY,
@@ -70,11 +70,62 @@ async function initSchema() {
     )
   `;
 
+  // Students
+  const studentsSQL = `
+    CREATE TABLE IF NOT EXISTS students (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      roll_number TEXT NOT NULL,
+      hostel TEXT NOT NULL,
+      room_number TEXT NOT NULL,
+      is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // OTP codes
+  const otpSQL = `
+    CREATE TABLE IF NOT EXISTS otp_codes (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      code TEXT NOT NULL,
+      purpose TEXT NOT NULL DEFAULT 'signup',
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
   try {
     await pool.query(complaintsSQL);
     await pool.query(adminsSQL);
     await pool.query(wardensSQL);
-    console.log('Database schema ready (complaints, admins, wardens)');
+    await pool.query(studentsSQL);
+    await pool.query(otpSQL);
+
+    // If complaints table was created earlier without complaint_code, add it
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS complaint_code TEXT
+    `);
+
+    // Unique constraint on complaint_code if it doesn't already exist
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'complaints_complaint_code_key'
+        ) THEN
+          ALTER TABLE complaints
+          ADD CONSTRAINT complaints_complaint_code_key UNIQUE (complaint_code);
+        END IF;
+      END $$;
+    `);
+
+    console.log('Database schema ready (complaints, admins, wardens, students, otp_codes)');
   } catch (err) {
     console.error('Error creating schema:', err.message);
     throw err;
