@@ -1,12 +1,12 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Complaint Codes)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Gmail SMTP)
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const { pool, initSchema } = require('./database');
@@ -14,9 +14,24 @@ const { pool, initSchema } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+// Email config
+const EMAIL_USER = process.env.EMAIL_USER || '';
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || '';
+const EMAIL_SENDER_NAME = process.env.EMAIL_SENDER_NAME || 'Hostel Fix';
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || '';
+
+if (!EMAIL_USER || !EMAIL_PASSWORD) {
+  console.error('WARNING: EMAIL_USER or EMAIL_PASSWORD not set. OTP emails will fail.');
+}
+
+// Gmail SMTP transporter (reused for all sends)
+const mailer = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASSWORD
+  }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -104,7 +119,6 @@ function isValidCollegeEmail(email) {
   return true;
 }
 
-// Generate next complaint code: HF-0047
 async function generateComplaintCode() {
   const result = await pool.query(
     'SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM complaints'
@@ -114,7 +128,6 @@ async function generateComplaintCode() {
   return 'HF-' + padded;
 }
 
-// Backfill old complaints that don't have a code yet
 async function backfillComplaintCodes() {
   const result = await pool.query(
     `SELECT id FROM complaints WHERE complaint_code IS NULL ORDER BY id ASC`
@@ -130,6 +143,34 @@ async function backfillComplaintCodes() {
   if (result.rows.length > 0) {
     console.log(`Backfilled ${result.rows.length} complaint codes.`);
   }
+}
+
+// Send OTP email via Gmail SMTP
+async function sendOTPEmail(toEmail, code) {
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+      <h2 style="color:#0d3b66;">Hostel Fix</h2>
+      <p>Your verification code is:</p>
+      <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px;
+                  padding: 16px; background: #f4f6f8; border-radius: 8px;
+                  text-align: center; color: #0d3b66;">
+        ${code}
+      </div>
+      <p style="color:#666; margin-top: 20px;">
+        This code expires in 10 minutes.
+      </p>
+      <p style="color:#999; font-size: 12px;">
+        If you did not request this, you can ignore this email.
+      </p>
+    </div>
+  `;
+
+  await mailer.sendMail({
+    from: `"${EMAIL_SENDER_NAME}" <${EMAIL_USER}>`,
+    to: toEmail,
+    subject: 'Your Hostel Fix verification code',
+    html: htmlBody
+  });
 }
 
 // =============================================
@@ -174,28 +215,12 @@ app.post('/api/student/request-otp', async (req, res) => {
     );
 
     try {
-      await resend.emails.send({
-        from: EMAIL_FROM,
-        to: email,
-        subject: 'Your Hostel Fix verification code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-            <h2 style="color:#0d3b66;">Hostel Fix</h2>
-            <p>Your verification code is:</p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px;
-                        padding: 16px; background: #f4f6f8; border-radius: 8px;
-                        text-align: center; color: #0d3b66;">
-              ${code}
-            </div>
-            <p style="color:#666; margin-top: 20px;">
-              This code expires in 10 minutes.
-            </p>
-          </div>
-        `
-      });
+      await sendOTPEmail(email, code);
     } catch (emailErr) {
-      console.error('Email send error:', emailErr);
-      return res.status(500).json({ error: 'Could not send email. Please try again.' });
+      console.error('Email send error:', emailErr.message || emailErr);
+      return res.status(500).json({
+        error: 'Could not send verification email. Please try again.'
+      });
     }
 
     res.json({ message: 'OTP sent to your email.' });
@@ -550,7 +575,6 @@ app.post('/api/complaints', requireStudent(), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Optional: enforce that the complaint is for the logged-in student
     if (req.session.user.role === 'student' &&
         req.session.user.roll_number !== student_roll) {
       return res.status(403).json({ error: 'You can only submit complaints for yourself' });
@@ -668,12 +692,10 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
 
     const role = req.session.user.role;
 
-    // Warden scoped to own hostel
     if (role === 'warden' && check.rows[0].hostel !== req.session.user.hostel) {
       return res.status(403).json({ error: 'Not authorized for this hostel' });
     }
 
-    // Student can only confirm or reopen their own complaints
     if (role === 'student') {
       if (check.rows[0].student_roll !== req.session.user.roll_number) {
         return res.status(403).json({ error: 'Not your complaint' });
