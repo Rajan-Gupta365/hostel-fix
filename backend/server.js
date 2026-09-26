@@ -1,12 +1,11 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Gmail SMTP IPv4)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo API)
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const { pool, initSchema } = require('./database');
@@ -14,34 +13,15 @@ const { pool, initSchema } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Email config
-const EMAIL_USER = process.env.EMAIL_USER || '';
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || '';
+// Email config (Brevo)
+const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const EMAIL_SENDER_NAME = process.env.EMAIL_SENDER_NAME || 'Hostel Fix';
+const EMAIL_SENDER_ADDRESS = process.env.EMAIL_USER || 'hostelfix.help@gmail.com';
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || '';
 
-if (!EMAIL_USER || !EMAIL_PASSWORD) {
-  console.error('WARNING: EMAIL_USER or EMAIL_PASSWORD not set. OTP emails will fail.');
+if (!BREVO_API_KEY) {
+  console.error('WARNING: BREVO_API_KEY not set. OTP emails will fail.');
 }
-
-// Gmail SMTP transporter (IPv4 + port 587 for cloud compatibility)
-const mailer = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  family: 4,
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASSWORD
-  },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000,
-  tls: {
-    rejectUnauthorized: false
-  }
-});
 
 app.use(cors());
 app.use(express.json());
@@ -155,6 +135,7 @@ async function backfillComplaintCodes() {
   }
 }
 
+// Send OTP email via Brevo HTTP API (works on Render — uses HTTPS, not SMTP)
 async function sendOTPEmail(toEmail, code) {
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
@@ -174,12 +155,33 @@ async function sendOTPEmail(toEmail, code) {
     </div>
   `;
 
-  await mailer.sendMail({
-    from: `"${EMAIL_SENDER_NAME}" <${EMAIL_USER}>`,
-    to: toEmail,
+  const payload = {
+    sender: {
+      name: EMAIL_SENDER_NAME,
+      email: EMAIL_SENDER_ADDRESS
+    },
+    to: [{ email: toEmail }],
     subject: 'Your Hostel Fix verification code',
-    html: htmlBody
+    htmlContent: htmlBody
+  };
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': BREVO_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(payload)
   });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Brevo API error (${response.status}): ${errorBody}`);
+  }
+
+  const result = await response.json();
+  return result;
 }
 
 // =============================================
