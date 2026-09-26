@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo API + Password Reset)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite)
 
 const express = require('express');
 const cors = require('cors');
@@ -13,11 +13,11 @@ const { pool, initSchema } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Email config (Brevo)
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const EMAIL_SENDER_NAME = process.env.EMAIL_SENDER_NAME || 'Hostel Fix';
 const EMAIL_SENDER_ADDRESS = process.env.EMAIL_USER || 'hostelfix.help@gmail.com';
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || '';
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
 if (!BREVO_API_KEY) {
   console.error('WARNING: BREVO_API_KEY not set. OTP emails will fail.');
@@ -97,6 +97,19 @@ function generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+function generateTempPassword() {
+  // 3 random words + 2-digit number — readable & secure
+  const words = [
+    'purple', 'tiger', 'cloud', 'river', 'happy', 'moon', 'silver', 'ocean',
+    'forest', 'ember', 'cedar', 'amber', 'golden', 'crimson', 'azure', 'quiet'
+  ];
+  const w1 = words[Math.floor(Math.random() * words.length)];
+  const w2 = words[Math.floor(Math.random() * words.length)];
+  const w3 = words[Math.floor(Math.random() * words.length)];
+  const num = String(Math.floor(10 + Math.random() * 90));
+  return `${w1}-${w2}-${w3}-${num}`;
+}
+
 function isValidEmail(email) {
   if (!email || typeof email !== 'string') return false;
   email = email.trim().toLowerCase();
@@ -113,24 +126,15 @@ function isValidCollegeEmail(email) {
   return true;
 }
 
-// Which table does an email belong to?
-// Returns: { table: 'students'|'wardens'|'admins'|null, user: row }
 async function findUserByEmail(email) {
-  // Students
   let result = await pool.query('SELECT * FROM students WHERE email = $1', [email]);
   if (result.rows.length > 0) {
     return { table: 'students', user: result.rows[0] };
   }
-  // Wardens (email column will be added in Phase 3E — for now they may not have one)
-  try {
-    result = await pool.query('SELECT * FROM wardens WHERE email = $1', [email]);
-    if (result.rows.length > 0) {
-      return { table: 'wardens', user: result.rows[0] };
-    }
-  } catch (e) {
-    // wardens.email column may not exist yet — safe to ignore
+  result = await pool.query('SELECT * FROM wardens WHERE email = $1', [email]);
+  if (result.rows.length > 0) {
+    return { table: 'wardens', user: result.rows[0] };
   }
-  // Admins don't have email (they use username) — skip
   return { table: null, user: null };
 }
 
@@ -160,36 +164,10 @@ async function backfillComplaintCodes() {
   }
 }
 
-// Send OTP email via Brevo HTTP API
-async function sendOTPEmail(toEmail, code, purpose) {
-  let subject = 'Your Hostel Fix verification code';
-  let intro = 'Your verification code is:';
-  let footer = 'If you did not request this, you can ignore this email.';
-
-  if (purpose === 'password_reset') {
-    subject = 'Reset your Hostel Fix password';
-    intro = 'You requested to reset your password. Use this code:';
-    footer = 'If you did not request a password reset, please ignore this email and your password will remain unchanged.';
-  }
-
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-      <h2 style="color:#0d3b66;">Hostel Fix</h2>
-      <p>${intro}</p>
-      <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px;
-                  padding: 16px; background: #f4f6f8; border-radius: 8px;
-                  text-align: center; color: #0d3b66;">
-        ${code}
-      </div>
-      <p style="color:#666; margin-top: 20px;">
-        This code expires in 10 minutes.
-      </p>
-      <p style="color:#999; font-size: 12px;">
-        ${footer}
-      </p>
-    </div>
-  `;
-
+// ---------------------------------------------
+// Email sender (Brevo)
+// ---------------------------------------------
+async function sendEmail(toEmail, subject, htmlBody) {
   const payload = {
     sender: {
       name: EMAIL_SENDER_NAME,
@@ -216,6 +194,68 @@ async function sendOTPEmail(toEmail, code, purpose) {
   }
 
   return await response.json();
+}
+
+async function sendOTPEmail(toEmail, code, purpose) {
+  let subject = 'Your Hostel Fix verification code';
+  let intro = 'Your verification code is:';
+  let footer = 'If you did not request this, you can ignore this email.';
+
+  if (purpose === 'password_reset') {
+    subject = 'Reset your Hostel Fix password';
+    intro = 'You requested to reset your password. Use this code:';
+    footer = 'If you did not request a password reset, please ignore this email.';
+  }
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+      <h2 style="color:#0d3b66;">Hostel Fix</h2>
+      <p>${intro}</p>
+      <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px;
+                  padding: 16px; background: #f4f6f8; border-radius: 8px;
+                  text-align: center; color: #0d3b66;">
+        ${code}
+      </div>
+      <p style="color:#666; margin-top: 20px;">This code expires in 10 minutes.</p>
+      <p style="color:#999; font-size: 12px;">${footer}</p>
+    </div>
+  `;
+
+  return sendEmail(toEmail, subject, htmlBody);
+}
+
+async function sendWardenInviteEmail(toEmail, wardenName, username, tempPassword, hostel) {
+  const loginUrl = `${APP_URL}/login.html`;
+  const subject = 'Welcome to Hostel Fix — Your Warden Account';
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;">
+      <h2 style="color:#0d3b66;">Hostel Fix</h2>
+      <p>Hello <strong>${wardenName}</strong>,</p>
+      <p>Your warden account has been created for <strong>${hostel}</strong>.</p>
+
+      <div style="background:#f4f6f8; padding:16px; border-radius:8px; margin:16px 0;">
+        <p style="margin:0 0 8px 0;"><strong>Username:</strong> ${username}</p>
+        <p style="margin:0 0 8px 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
+        <p style="margin:0;"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
+      </div>
+
+      <p style="color:#b3261e;"><strong>Important:</strong> You will be asked to change your password on your first login.</p>
+
+      <p style="margin-top:24px;">
+        <a href="${loginUrl}" style="background:#0d3b66;color:#ffffff;padding:12px 24px;
+           text-decoration:none;border-radius:8px;font-weight:600;display:inline-block;">
+          Log In Now →
+        </a>
+      </p>
+
+      <p style="color:#999; font-size: 12px; margin-top: 24px;">
+        If you did not expect this email, please contact the hostel admin.
+      </p>
+    </div>
+  `;
+
+  return sendEmail(toEmail, subject, htmlBody);
 }
 
 // =============================================
@@ -413,7 +453,6 @@ app.get('/api/student/my-complaints', requireStudent(), async (req, res) => {
 // PASSWORD RESET ROUTES (all users)
 // =============================================
 
-// Step 1: Request reset OTP
 app.post('/api/auth/request-reset-otp', async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
@@ -423,10 +462,8 @@ app.post('/api/auth/request-reset-otp', async (req, res) => {
     }
 
     const found = await findUserByEmail(email);
-    // Do not reveal whether email exists — always return success-style message.
-    // But we only actually send if the user exists.
+
     if (found.table && found.user) {
-      // Invalidate old reset OTPs
       await pool.query(
         `UPDATE otp_codes SET used = TRUE
          WHERE email = $1 AND purpose = 'password_reset' AND used = FALSE`,
@@ -459,9 +496,6 @@ app.post('/api/auth/request-reset-otp', async (req, res) => {
   }
 });
 
-// Step 2: Verify OTP — returns a short-lived token (we use session-less token)
-// Simpler: we combine verify + reset in one route (Step 3).
-// This route just validates the code so the UI can move forward.
 app.post('/api/auth/verify-reset-otp', async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
@@ -496,7 +530,6 @@ app.post('/api/auth/verify-reset-otp', async (req, res) => {
   }
 });
 
-// Step 3: Reset password using OTP
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
@@ -538,6 +571,14 @@ app.post('/api/auth/reset-password', async (req, res) => {
       `UPDATE ${found.table} SET password_hash = $1 WHERE id = $2`,
       [hash, found.user.id]
     );
+
+    // If it's a warden, clear must_change_password
+    if (found.table === 'wardens') {
+      await pool.query(
+        'UPDATE wardens SET must_change_password = FALSE WHERE id = $1',
+        [found.user.id]
+      );
+    }
 
     await pool.query('UPDATE otp_codes SET used = TRUE WHERE id = $1', [otp.id]);
 
@@ -589,7 +630,8 @@ app.post('/api/auth/login', async (req, res) => {
       username: user.username,
       full_name: user.full_name,
       role: role,
-      hostel: user.hostel || null
+      hostel: user.hostel || null,
+      must_change_password: user.must_change_password || false
     };
 
     res.json({ message: 'Logged in', user: req.session.user });
@@ -639,6 +681,12 @@ app.post('/api/auth/change-password', requireAuth(), async (req, res) => {
     const newHash = await bcrypt.hash(new_password, 10);
     await pool.query(`UPDATE ${table} SET password_hash = $1 WHERE id = $2`, [newHash, user.id]);
 
+    // If warden, clear must_change_password
+    if (user.role === 'warden') {
+      await pool.query('UPDATE wardens SET must_change_password = FALSE WHERE id = $1', [user.id]);
+      req.session.user.must_change_password = false;
+    }
+
     res.json({ message: 'Password changed successfully' });
   } catch (err) {
     console.error('Change password error:', err);
@@ -653,7 +701,7 @@ app.post('/api/auth/change-password', requireAuth(), async (req, res) => {
 app.get('/api/admin/wardens', requireAdmin(), async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, full_name, hostel, is_active, created_at
+      `SELECT id, username, full_name, email, hostel, is_active, must_change_password, created_at
        FROM wardens ORDER BY created_at DESC`
     );
     res.json(result.rows);
@@ -665,12 +713,13 @@ app.get('/api/admin/wardens', requireAdmin(), async (req, res) => {
 
 app.post('/api/admin/wardens', requireAdmin(), async (req, res) => {
   try {
-    const { username, password, full_name, hostel } = req.body;
-    if (!username || !password || !hostel) {
-      return res.status(400).json({ error: 'Username, password, and hostel required' });
+    const { username, full_name, email, hostel } = req.body;
+
+    if (!username || !hostel) {
+      return res.status(400).json({ error: 'Username and hostel are required' });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please provide a valid email address' });
     }
 
     const existing = await pool.query(
@@ -681,15 +730,39 @@ app.post('/api/admin/wardens', requireAdmin(), async (req, res) => {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    // Generate temporary password
+    const tempPassword = generateTempPassword();
+    const hash = await bcrypt.hash(tempPassword, 10);
+
     const result = await pool.query(
-      `INSERT INTO wardens (username, password_hash, full_name, hostel, is_active)
-       VALUES ($1, $2, $3, $4, TRUE)
-       RETURNING id, username, full_name, hostel, is_active, created_at`,
-      [username, hash, full_name || username, hostel]
+      `INSERT INTO wardens (username, password_hash, full_name, email, hostel, is_active, must_change_password)
+       VALUES ($1, $2, $3, $4, $5, TRUE, TRUE)
+       RETURNING id, username, full_name, email, hostel, is_active, must_change_password, created_at`,
+      [username, hash, full_name || username, email || null, hostel]
     );
 
-    res.status(201).json({ message: 'Warden created', warden: result.rows[0] });
+    const warden = result.rows[0];
+
+    // Send invite email if email was provided
+    let emailSent = false;
+    let emailError = null;
+    if (email) {
+      try {
+        await sendWardenInviteEmail(email, warden.full_name, username, tempPassword, hostel);
+        emailSent = true;
+      } catch (emailErr) {
+        console.error('Warden invite email error:', emailErr.message || emailErr);
+        emailError = 'Warden created, but invite email failed. Please share the temp password manually.';
+      }
+    }
+
+    res.status(201).json({
+      message: emailSent ? 'Warden created and invite email sent' : 'Warden created',
+      warden: warden,
+      temp_password: email ? undefined : tempPassword,
+      email_sent: emailSent,
+      warning: emailError
+    });
   } catch (err) {
     console.error('Create warden error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -732,11 +805,11 @@ app.post('/api/admin/wardens/:id/reset-password', requireAdmin(), async (req, re
     }
     const hash = await bcrypt.hash(new_password, 10);
     const result = await pool.query(
-      `UPDATE wardens SET password_hash = $1 WHERE id = $2 RETURNING id`,
+      `UPDATE wardens SET password_hash = $1, must_change_password = TRUE WHERE id = $2 RETURNING id`,
       [hash, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Warden not found' });
-    res.json({ message: 'Password reset' });
+    res.json({ message: 'Password reset. Warden must change it on next login.' });
   } catch (err) {
     console.error('Reset password error:', err);
     res.status(500).json({ error: 'Server error' });

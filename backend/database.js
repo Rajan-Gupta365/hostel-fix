@@ -22,7 +22,7 @@ const pool = new Pool({
 });
 
 async function initSchema() {
-  // Complaints table (with complaint_code)
+  // Complaints table
   const complaintsSQL = `
     CREATE TABLE IF NOT EXISTS complaints (
       id SERIAL PRIMARY KEY,
@@ -64,8 +64,10 @@ async function initSchema() {
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       full_name TEXT,
+      email TEXT,
       hostel TEXT NOT NULL,
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
@@ -105,13 +107,14 @@ async function initSchema() {
     await pool.query(studentsSQL);
     await pool.query(otpSQL);
 
-    // If complaints table was created earlier without complaint_code, add it
+    // --- Migrations for existing tables ---
+
+    // complaints.complaint_code
     await pool.query(`
       ALTER TABLE complaints
       ADD COLUMN IF NOT EXISTS complaint_code TEXT
     `);
 
-    // Unique constraint on complaint_code if it doesn't already exist
     await pool.query(`
       DO $$
       BEGIN
@@ -123,6 +126,18 @@ async function initSchema() {
           ADD CONSTRAINT complaints_complaint_code_key UNIQUE (complaint_code);
         END IF;
       END $$;
+    `);
+
+    // wardens.email
+    await pool.query(`
+      ALTER TABLE wardens
+      ADD COLUMN IF NOT EXISTS email TEXT
+    `);
+
+    // wardens.must_change_password
+    await pool.query(`
+      ALTER TABLE wardens
+      ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE
     `);
 
     console.log('Database schema ready (complaints, admins, wardens, students, otp_codes)');

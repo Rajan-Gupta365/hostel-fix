@@ -240,6 +240,7 @@
     .actions button.reopen  { background: #f0ad00; color: #333; border-color: #f0ad00; }
     .empty { text-align: center; padding: 40px; color: #888; background: #ffffff; border-radius: 10px; }
     .loading { text-align: center; padding: 30px; color: #666; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -320,6 +321,13 @@
         }
         const data = await res.json();
         currentUser = data.user;
+
+        // Force password change if flagged
+        if (currentUser.role === 'warden' && currentUser.must_change_password) {
+          window.location.href = 'change-password.html?force=1';
+          return false;
+        }
+
         userNameEl.textContent = currentUser.full_name || currentUser.username;
         userRoleEl.textContent = '(' + currentUser.role +
           (currentUser.hostel ? ' — ' + currentUser.hostel : '') + ')';

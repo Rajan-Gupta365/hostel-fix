@@ -101,9 +101,18 @@
       border-radius: 8px;
       font-size: 13px;
       display: none;
+      line-height: 1.5;
     }
     .msg.success { background: #e6f4ea; color: #1e7e34; display: block; }
     .msg.error   { background: #fdecea; color: #b3261e; display: block; }
+    .msg.warn    { background: #fff4d6; color: #8a6300; display: block; }
+    .msg code {
+      background: rgba(0,0,0,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -140,11 +149,26 @@
     .inactive { opacity: 0.55; }
     .badge-active { color: #1e7e34; font-weight: 700; }
     .badge-inactive { color: #b3261e; font-weight: 700; }
+    .badge-must-change {
+      background: #fff4d6;
+      color: #8a6300;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      margin-left: 4px;
+    }
     .empty { text-align: center; padding: 24px; color: #888; font-size: 13px; }
     .guard {
       text-align: center;
       padding: 60px 20px;
       color: #666;
+    }
+    .hint {
+      font-size: 12px;
+      color: #888;
+      margin-top: 6px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -160,17 +184,14 @@
       </div>
     </div>
 
-    <!-- Guard (shown when not admin) -->
     <div id="guard" class="guard" style="display:none;">
       <div style="font-size:40px;">🔒</div>
       <p style="margin-top:12px;">Admin access required.</p>
       <p style="margin-top:8px;"><a href="login.html" class="nav-link">Go to Login</a></p>
     </div>
 
-    <!-- Main content (only for admin) -->
     <div id="main" style="display:none;">
 
-      <!-- Create warden -->
       <div class="card">
         <h2>➕ Create New Warden</h2>
         <div class="form-grid">
@@ -183,19 +204,22 @@
             <input type="text" id="w_fullname" placeholder="e.g., Suresh Kumar" />
           </div>
           <div>
+            <label for="w_email">Email (for invite)</label>
+            <input type="email" id="w_email" placeholder="e.g., warden@example.com" />
+          </div>
+          <div>
             <label for="w_hostel">Hostel</label>
             <input type="text" id="w_hostel" placeholder="e.g., Hostel B" />
           </div>
-          <div>
-            <label for="w_password">Password (min 8 chars)</label>
-            <input type="text" id="w_password" placeholder="e.g., welcome123" />
-          </div>
         </div>
+        <p class="hint">
+          A temporary password will be generated and emailed to the warden.
+          They will be asked to change it on first login.
+        </p>
         <button class="btn btn-primary" id="createBtn">Create Warden</button>
         <div class="msg" id="createMsg"></div>
       </div>
 
-      <!-- List wardens -->
       <div class="card">
         <h2>👥 All Wardens</h2>
         <div id="wardenList">
@@ -236,7 +260,6 @@
       }
     }
 
-    // ---------- Logout ----------
     logoutBtn.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = 'login.html';
@@ -250,12 +273,12 @@
       const payload = {
         username: document.getElementById('w_username').value.trim(),
         full_name: document.getElementById('w_fullname').value.trim(),
-        hostel: document.getElementById('w_hostel').value.trim(),
-        password: document.getElementById('w_password').value
+        email: document.getElementById('w_email').value.trim().toLowerCase(),
+        hostel: document.getElementById('w_hostel').value.trim()
       };
 
-      if (!payload.username || !payload.hostel || !payload.password) {
-        createMsg.textContent = 'Username, hostel, and password are required.';
+      if (!payload.username || !payload.hostel) {
+        createMsg.textContent = 'Username and hostel are required.';
         createMsg.className = 'msg error';
         createBtn.disabled = false;
         return;
@@ -273,12 +296,25 @@
           createMsg.textContent = data.error || 'Failed to create warden';
           createMsg.className = 'msg error';
         } else {
-          createMsg.textContent = '✅ Warden created: ' + payload.username;
-          createMsg.className = 'msg success';
+          let html = '✅ Warden created: <code>' + escapeHtml(payload.username) + '</code>';
+
+          if (data.email_sent) {
+            html += '<br>📧 Invite email sent to <code>' + escapeHtml(payload.email) + '</code>';
+          } else if (data.temp_password) {
+            html += '<br>⚠️ No email provided. Temporary password: <code>' + escapeHtml(data.temp_password) + '</code>';
+            html += '<br>Share this with the warden manually.';
+          } else if (data.warning) {
+            html += '<br>⚠️ ' + escapeHtml(data.warning);
+          }
+
+          createMsg.innerHTML = html;
+          createMsg.className = data.email_sent ? 'msg success' : 'msg warn';
+
           document.getElementById('w_username').value = '';
           document.getElementById('w_fullname').value = '';
+          document.getElementById('w_email').value = '';
           document.getElementById('w_hostel').value = '';
-          document.getElementById('w_password').value = '';
+
           loadWardens();
         }
       } catch (err) {
@@ -308,6 +344,7 @@
               <tr>
                 <th>Username</th>
                 <th>Name</th>
+                <th>Email</th>
                 <th>Hostel</th>
                 <th>Status</th>
                 <th class="actions">Actions</th>
@@ -317,14 +354,22 @@
         `;
 
         for (const w of wardens) {
+          const mustChange = w.must_change_password
+            ? '<span class="badge-must-change">Must change pwd</span>'
+            : '';
+
           html += `
             <tr class="${w.is_active ? '' : 'inactive'}">
               <td><strong>${escapeHtml(w.username)}</strong></td>
               <td>${escapeHtml(w.full_name || '—')}</td>
+              <td>${escapeHtml(w.email || '—')}</td>
               <td>${escapeHtml(w.hostel)}</td>
-              <td>${w.is_active
-                ? '<span class="badge-active">Active</span>'
-                : '<span class="badge-inactive">Inactive</span>'}</td>
+              <td>
+                ${w.is_active
+                  ? '<span class="badge-active">Active</span>'
+                  : '<span class="badge-inactive">Inactive</span>'}
+                ${mustChange}
+              </td>
               <td class="actions">
                 ${w.is_active
                   ? `<button class="warn" data-action="deactivate" data-id="${w.id}">Deactivate</button>`
@@ -338,7 +383,6 @@
         html += '</tbody></table>';
         wardenList.innerHTML = html;
 
-        // Attach action listeners
         wardenList.querySelectorAll('button[data-action]').forEach(btn => {
           btn.addEventListener('click', () => {
             const id = btn.dataset.id;
@@ -362,7 +406,6 @@
         .replace(/"/g, '&quot;');
     }
 
-    // ---------- Warden actions ----------
     async function deactivate(id) {
       if (!confirm('Deactivate this warden? They will not be able to log in.')) return;
       await fetch('/api/admin/wardens/' + id + '/deactivate', { method: 'PATCH' });
@@ -375,7 +418,7 @@
     }
 
     async function resetPassword(id) {
-      const newPwd = prompt('Enter new password for this warden (min 8 chars):');
+      const newPwd = prompt('Enter new temporary password for this warden (min 8 chars):');
       if (newPwd === null) return;
       if (newPwd.length < 8) {
         alert('Password must be at least 8 characters.');
@@ -390,11 +433,11 @@
       if (!res.ok) {
         alert(data.error || 'Failed to reset password');
       } else {
-        alert('Password reset successfully.');
+        alert('Password reset. Warden must change it on next login.');
+        loadWardens();
       }
     }
 
-    // ---------- Init ----------
     (async () => {
       const ok = await guard();
       if (ok) loadWardens();
