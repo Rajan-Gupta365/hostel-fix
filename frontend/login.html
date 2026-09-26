@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hostel Fix — Login</title>
+  <title>Hostel Fix — Warden / Admin Login</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -86,6 +86,16 @@
     }
     .message.error { background: #fdecea; color: #b3261e; display: block; }
     .message.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .forgot-row {
+      text-align: right;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .forgot-row a {
+      color: #0d3b66;
+      text-decoration: none;
+    }
+    .forgot-row a:hover { text-decoration: underline; }
     .back {
       display: block;
       text-align: center;
@@ -101,7 +111,7 @@
   <div class="container">
     <div class="logo">🔐</div>
     <h1>Warden / Admin Login</h1>
-    <p class="subtitle">Students do not need to log in to report complaints.</p>
+    <p class="subtitle">Students do not need to log in here — use the student login instead.</p>
 
     <form id="loginForm">
       <label for="username">Username</label>
@@ -109,6 +119,10 @@
 
       <label for="password">Password</label>
       <input type="password" id="password" required autocomplete="current-password" />
+
+      <div class="forgot-row">
+        <a href="forgot-password.html">Forgot Password?</a>
+      </div>
 
       <button type="submit" id="loginBtn">Log In</button>
 

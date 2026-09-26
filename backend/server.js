@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo API)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo API + Password Reset)
 
 const express = require('express');
 const cors = require('cors');
@@ -97,16 +97,41 @@ function generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function isValidCollegeEmail(email) {
+function isValidEmail(email) {
   if (!email || typeof email !== 'string') return false;
   email = email.trim().toLowerCase();
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return false;
+  return emailRegex.test(email);
+}
+
+function isValidCollegeEmail(email) {
+  if (!isValidEmail(email)) return false;
   if (ALLOWED_EMAIL_DOMAIN) {
     const domain = email.split('@')[1];
     return domain === ALLOWED_EMAIL_DOMAIN.toLowerCase();
   }
   return true;
+}
+
+// Which table does an email belong to?
+// Returns: { table: 'students'|'wardens'|'admins'|null, user: row }
+async function findUserByEmail(email) {
+  // Students
+  let result = await pool.query('SELECT * FROM students WHERE email = $1', [email]);
+  if (result.rows.length > 0) {
+    return { table: 'students', user: result.rows[0] };
+  }
+  // Wardens (email column will be added in Phase 3E — for now they may not have one)
+  try {
+    result = await pool.query('SELECT * FROM wardens WHERE email = $1', [email]);
+    if (result.rows.length > 0) {
+      return { table: 'wardens', user: result.rows[0] };
+    }
+  } catch (e) {
+    // wardens.email column may not exist yet — safe to ignore
+  }
+  // Admins don't have email (they use username) — skip
+  return { table: null, user: null };
 }
 
 async function generateComplaintCode() {
@@ -135,12 +160,22 @@ async function backfillComplaintCodes() {
   }
 }
 
-// Send OTP email via Brevo HTTP API (works on Render — uses HTTPS, not SMTP)
-async function sendOTPEmail(toEmail, code) {
+// Send OTP email via Brevo HTTP API
+async function sendOTPEmail(toEmail, code, purpose) {
+  let subject = 'Your Hostel Fix verification code';
+  let intro = 'Your verification code is:';
+  let footer = 'If you did not request this, you can ignore this email.';
+
+  if (purpose === 'password_reset') {
+    subject = 'Reset your Hostel Fix password';
+    intro = 'You requested to reset your password. Use this code:';
+    footer = 'If you did not request a password reset, please ignore this email and your password will remain unchanged.';
+  }
+
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
       <h2 style="color:#0d3b66;">Hostel Fix</h2>
-      <p>Your verification code is:</p>
+      <p>${intro}</p>
       <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px;
                   padding: 16px; background: #f4f6f8; border-radius: 8px;
                   text-align: center; color: #0d3b66;">
@@ -150,7 +185,7 @@ async function sendOTPEmail(toEmail, code) {
         This code expires in 10 minutes.
       </p>
       <p style="color:#999; font-size: 12px;">
-        If you did not request this, you can ignore this email.
+        ${footer}
       </p>
     </div>
   `;
@@ -161,7 +196,7 @@ async function sendOTPEmail(toEmail, code) {
       email: EMAIL_SENDER_ADDRESS
     },
     to: [{ email: toEmail }],
-    subject: 'Your Hostel Fix verification code',
+    subject: subject,
     htmlContent: htmlBody
   };
 
@@ -180,8 +215,7 @@ async function sendOTPEmail(toEmail, code) {
     throw new Error(`Brevo API error (${response.status}): ${errorBody}`);
   }
 
-  const result = await response.json();
-  return result;
+  return await response.json();
 }
 
 // =============================================
@@ -226,7 +260,7 @@ app.post('/api/student/request-otp', async (req, res) => {
     );
 
     try {
-      await sendOTPEmail(email, code);
+      await sendOTPEmail(email, code, 'signup');
     } catch (emailErr) {
       console.error('Email send error:', emailErr.message || emailErr);
       return res.status(500).json({
@@ -371,6 +405,145 @@ app.get('/api/student/my-complaints', requireStudent(), async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('My complaints error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// =============================================
+// PASSWORD RESET ROUTES (all users)
+// =============================================
+
+// Step 1: Request reset OTP
+app.post('/api/auth/request-reset-otp', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    const found = await findUserByEmail(email);
+    // Do not reveal whether email exists — always return success-style message.
+    // But we only actually send if the user exists.
+    if (found.table && found.user) {
+      // Invalidate old reset OTPs
+      await pool.query(
+        `UPDATE otp_codes SET used = TRUE
+         WHERE email = $1 AND purpose = 'password_reset' AND used = FALSE`,
+        [email]
+      );
+
+      const code = generateOTP();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await pool.query(
+        `INSERT INTO otp_codes (email, code, purpose, expires_at)
+         VALUES ($1, $2, 'password_reset', $3)`,
+        [email, code, expiresAt]
+      );
+
+      try {
+        await sendOTPEmail(email, code, 'password_reset');
+      } catch (emailErr) {
+        console.error('Reset email send error:', emailErr.message || emailErr);
+        return res.status(500).json({
+          error: 'Could not send reset email. Please try again.'
+        });
+      }
+    }
+
+    res.json({ message: 'If this email is registered, a reset code has been sent.' });
+  } catch (err) {
+    console.error('Request reset OTP error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Step 2: Verify OTP — returns a short-lived token (we use session-less token)
+// Simpler: we combine verify + reset in one route (Step 3).
+// This route just validates the code so the UI can move forward.
+app.post('/api/auth/verify-reset-otp', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const code = (req.body.code || '').trim();
+
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email and code required' });
+    }
+
+    const otpResult = await pool.query(
+      `SELECT * FROM otp_codes
+       WHERE email = $1 AND purpose = 'password_reset' AND used = FALSE
+       ORDER BY created_at DESC LIMIT 1`,
+      [email]
+    );
+    if (otpResult.rows.length === 0) {
+      return res.status(400).json({ error: 'No valid reset code found. Please request a new one.' });
+    }
+    const otp = otpResult.rows[0];
+
+    if (otp.code !== code) {
+      return res.status(400).json({ error: 'Invalid code. Please check and try again.' });
+    }
+    if (new Date(otp.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Code has expired. Please request a new one.' });
+    }
+
+    res.json({ message: 'Code verified.' });
+  } catch (err) {
+    console.error('Verify reset OTP error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Step 3: Reset password using OTP
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const code = (req.body.code || '').trim();
+    const new_password = req.body.new_password || '';
+
+    if (!email || !code || !new_password) {
+      return res.status(400).json({ error: 'Email, code, and new password required' });
+    }
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    const found = await findUserByEmail(email);
+    if (!found.table || !found.user) {
+      return res.status(400).json({ error: 'Invalid or expired reset code.' });
+    }
+
+    const otpResult = await pool.query(
+      `SELECT * FROM otp_codes
+       WHERE email = $1 AND purpose = 'password_reset' AND used = FALSE
+       ORDER BY created_at DESC LIMIT 1`,
+      [email]
+    );
+    if (otpResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired reset code.' });
+    }
+    const otp = otpResult.rows[0];
+
+    if (otp.code !== code) {
+      return res.status(400).json({ error: 'Invalid code. Please check and try again.' });
+    }
+    if (new Date(otp.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Code has expired. Please request a new one.' });
+    }
+
+    const hash = await bcrypt.hash(new_password, 10);
+    await pool.query(
+      `UPDATE ${found.table} SET password_hash = $1 WHERE id = $2`,
+      [hash, found.user.id]
+    );
+
+    await pool.query('UPDATE otp_codes SET used = TRUE WHERE id = $1', [otp.id]);
+
+    res.json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -760,6 +933,7 @@ async function start() {
       console.log(`Home:      http://localhost:${PORT}/`);
       console.log(`Student:   http://localhost:${PORT}/student.html`);
       console.log(`Signup:    http://localhost:${PORT}/signup.html`);
+      console.log(`Forgot:    http://localhost:${PORT}/forgot-password.html`);
       console.log(`Warden:    http://localhost:${PORT}/warden.html`);
       console.log(`Login:     http://localhost:${PORT}/login.html`);
       console.log(`Admin:     http://localhost:${PORT}/admin.html`);

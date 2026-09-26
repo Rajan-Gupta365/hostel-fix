@@ -82,6 +82,16 @@
     }
     .message.error { background: #fdecea; color: #b3261e; display: block; }
     .message.success { background: #e6f4ea; color: #1e7e34; display: block; }
+    .forgot-row {
+      text-align: right;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .forgot-row a {
+      color: #0d3b66;
+      text-decoration: none;
+    }
+    .forgot-row a:hover { text-decoration: underline; }
     .links {
       display: flex;
       justify-content: space-between;
@@ -107,6 +117,10 @@
 
       <label for="password">Password</label>
       <input type="password" id="password" required autocomplete="current-password" />
+
+      <div class="forgot-row">
+        <a href="forgot-password.html">Forgot Password?</a>
+      </div>
 
       <button type="submit" id="loginBtn">Log In</button>
 
