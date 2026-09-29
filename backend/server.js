@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode + Roll Uniqueness)
 
 const express = require('express');
 const cors = require('cors');
@@ -19,16 +19,10 @@ const EMAIL_SENDER_ADDRESS = process.env.EMAIL_USER || 'hostelfix.help@gmail.com
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || '';
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
-// ============================================================
-// ALLOWED HOSTELS — Whitelist
-// For now, only ONE hostel is active. When expanding to more
-// hostels later, add them here and they'll show up in dropdowns.
-// ============================================================
 const ALLOWED_HOSTELS = [
   { code: 'KP-25J', label: 'KP-25 Block J' }
 ];
 
-// The single default hostel (used for migration of old data)
 const DEFAULT_HOSTEL = 'KP-25J';
 
 function isValidHostelCode(code) {
@@ -296,7 +290,7 @@ async function sendWardenInviteEmail(toEmail, wardenName, username, tempPassword
 }
 
 // =============================================
-// CONFIG ROUTE — exposes allowed hostels to frontend
+// CONFIG ROUTE
 // =============================================
 app.get('/api/config', (req, res) => {
   res.json({
@@ -383,12 +377,24 @@ app.post('/api/student/register', async (req, res) => {
       return res.status(400).json({ error: 'Please select a valid hostel.' });
     }
 
-    const existing = await pool.query(
+    // Check email uniqueness
+    const existingEmail = await pool.query(
       'SELECT id FROM students WHERE email = $1',
       [email]
     );
-    if (existing.rows.length > 0) {
+    if (existingEmail.rows.length > 0) {
       return res.status(400).json({ error: 'This email is already registered.' });
+    }
+
+    // Check roll number uniqueness (case-insensitive)
+    const existingRoll = await pool.query(
+      'SELECT id FROM students WHERE LOWER(roll_number) = LOWER($1)',
+      [roll_number]
+    );
+    if (existingRoll.rows.length > 0) {
+      return res.status(400).json({
+        error: 'This roll number is already registered. If this is your roll number, please contact the warden.'
+      });
     }
 
     const otpResult = await pool.query(
@@ -486,11 +492,17 @@ app.get('/api/student/me', requireStudent(), (req, res) => {
   res.json({ user: req.session.user });
 });
 
+// Get ONLY this student's complaints — filter by roll AND room AND hostel
 app.get('/api/student/my-complaints', requireStudent(), async (req, res) => {
   try {
+    const user = req.session.user;
     const result = await pool.query(
-      `SELECT * FROM complaints WHERE student_roll = $1 ORDER BY created_at DESC`,
-      [req.session.user.roll_number]
+      `SELECT * FROM complaints
+       WHERE LOWER(student_roll) = LOWER($1)
+         AND LOWER(room_number) = LOWER($2)
+         AND LOWER(hostel) = LOWER($3)
+       ORDER BY created_at DESC`,
+      [user.roll_number, user.room_number, user.hostel]
     );
     res.json(result.rows);
   } catch (err) {
