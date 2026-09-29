@@ -74,6 +74,17 @@
       color: #666;
       margin-bottom: 14px;
     }
+    .draft-note {
+      background: #fff4d6;
+      border: 1px solid #f0d68a;
+      color: #8a6300;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      margin-bottom: 12px;
+      display: none;
+      line-height: 1.5;
+    }
     label {
       display: block;
       font-size: 13px;
@@ -173,6 +184,10 @@
       <div class="welcome-box" id="welcomeBox"></div>
       <p class="subtitle">Tell us what's wrong. We'll route it to the warden.</p>
 
+      <div class="draft-note" id="draftNote">
+        📝 We restored your unsaved draft from your last visit. Keep editing or submit when ready.
+      </div>
+
       <form id="complaintForm">
         <label for="student_name">Your Name</label>
         <input type="text" id="student_name" readonly />
@@ -224,8 +239,60 @@
     const submitBtn = document.getElementById('submitBtn');
     const messageBox = document.getElementById('message');
     const logoutBtn = document.getElementById('logoutBtn');
+    const draftNote = document.getElementById('draftNote');
+
+    const categoryEl = document.getElementById('category');
+    const subcategoryEl = document.getElementById('subcategory');
+    const descriptionEl = document.getElementById('description');
+    const priorityEl = document.getElementById('priority');
 
     let currentUser = null;
+
+    // Draft storage key — per student roll, so different students on same browser don't mix drafts
+    function draftKey() {
+      return currentUser ? ('hf_draft_' + currentUser.roll_number) : 'hf_draft_unknown';
+    }
+
+    const DRAFT_FIELDS = ['category', 'subcategory', 'description', 'priority'];
+
+    function saveDraft() {
+      const draft = {};
+      for (const f of DRAFT_FIELDS) {
+        const el = document.getElementById(f);
+        if (el) draft[f] = el.value;
+      }
+      try {
+        localStorage.setItem(draftKey(), JSON.stringify(draft));
+      } catch (e) {
+        // localStorage may be full or disabled — silent
+      }
+    }
+
+    function clearDraft() {
+      try {
+        localStorage.removeItem(draftKey());
+      } catch (e) { /* silent */ }
+    }
+
+    function restoreDraft() {
+      try {
+        const raw = localStorage.getItem(draftKey());
+        if (!raw) return false;
+        const draft = JSON.parse(raw);
+        let anyNonEmpty = false;
+        for (const f of DRAFT_FIELDS) {
+          const el = document.getElementById(f);
+          if (!el) continue;
+          if (draft[f] !== undefined && draft[f] !== null && draft[f] !== '') {
+            el.value = draft[f];
+            anyNonEmpty = true;
+          }
+        }
+        return anyNonEmpty;
+      } catch (e) {
+        return false;
+      }
+    }
 
     function showMessage(html, type) {
       messageBox.innerHTML = html;
@@ -263,6 +330,27 @@
 
         loadingView.classList.add('hidden');
         mainView.classList.remove('hidden');
+
+        // Restore draft if any
+        const restored = restoreDraft();
+        if (restored) {
+          draftNote.style.display = 'block';
+        }
+
+        // Attach input listeners to save draft on every change (debounced)
+        let saveTimeout = null;
+        function scheduleSave() {
+          if (saveTimeout) clearTimeout(saveTimeout);
+          saveTimeout = setTimeout(saveDraft, 400);
+        }
+
+        for (const f of DRAFT_FIELDS) {
+          const el = document.getElementById(f);
+          if (el) {
+            el.addEventListener('input', scheduleSave);
+            el.addEventListener('change', scheduleSave);
+          }
+        }
       } catch (err) {
         window.location.href = 'student-login.html';
       }
@@ -284,10 +372,10 @@
         student_roll: currentUser.roll_number,
         hostel: currentUser.hostel,
         room_number: currentUser.room_number,
-        category: document.getElementById('category').value,
-        subcategory: document.getElementById('subcategory').value.trim(),
-        description: document.getElementById('description').value.trim(),
-        priority: document.getElementById('priority').value
+        category: categoryEl.value,
+        subcategory: subcategoryEl.value.trim(),
+        description: descriptionEl.value.trim(),
+        priority: priorityEl.value
       };
 
       try {
@@ -308,6 +396,13 @@
             '<a href="my-complaints.html">View it →</a>',
             'info'
           );
+          // Clear draft and fields after successful (duplicate) submit
+          categoryEl.value = '';
+          subcategoryEl.value = '';
+          descriptionEl.value = '';
+          priorityEl.value = 'NORMAL';
+          clearDraft();
+          draftNote.style.display = 'none';
         } else {
           showMessage(
             '✅ Complaint submitted!<br>' +
@@ -315,10 +410,13 @@
             '<a href="my-complaints.html">Track it →</a>',
             'success'
           );
-          document.getElementById('category').value = '';
-          document.getElementById('subcategory').value = '';
-          document.getElementById('description').value = '';
-          document.getElementById('priority').value = 'NORMAL';
+          // Reset form and draft
+          categoryEl.value = '';
+          subcategoryEl.value = '';
+          descriptionEl.value = '';
+          priorityEl.value = 'NORMAL';
+          clearDraft();
+          draftNote.style.display = 'none';
         }
       } catch (err) {
         showMessage('Cannot reach server. Is the backend running?', 'error');

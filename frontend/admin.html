@@ -56,6 +56,27 @@
       color: #0d3b66;
       margin-bottom: 16px;
     }
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .card-header-row h2 { margin-bottom: 0; }
+    .csv-btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      color: #0d3b66;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .csv-btn:hover { background: #f0f3f7; }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -170,8 +191,6 @@
       margin-top: 6px;
       line-height: 1.5;
     }
-
-    /* Worker performance */
     .worker-card {
       background: #ffffff;
       border-radius: 10px;
@@ -200,8 +219,6 @@
       font-size: 16px;
       letter-spacing: 2px;
     }
-
-    /* Tabs */
     .tabs {
       display: flex;
       gap: 4px;
@@ -284,7 +301,10 @@
         </div>
 
         <div class="card">
-          <h2>👥 All Wardens</h2>
+          <div class="card-header-row">
+            <h2>👥 All Wardens</h2>
+            <button class="csv-btn" id="exportCsvBtn" title="Download all complaints as CSV">📥 Export Complaints CSV</button>
+          </div>
           <div id="wardenList">
             <div class="empty">Loading...</div>
           </div>
@@ -295,7 +315,10 @@
       <!-- ============ WORKERS TAB ============ -->
       <div class="tab-panel" id="panel-workers">
         <div class="card">
-          <h2>👷 Worker Performance</h2>
+          <div class="card-header-row">
+            <h2>👷 Worker Performance</h2>
+            <button class="csv-btn" id="exportCsvBtn2" title="Download all complaints as CSV">📥 Export Complaints CSV</button>
+          </div>
           <p class="hint" style="margin-bottom:12px;">
             These statistics are based on student ratings after complaints are resolved.
             Only workers who have been assigned to complaints appear here.
@@ -317,8 +340,9 @@
     const createMsg = document.getElementById('createMsg');
     const wardenList = document.getElementById('wardenList');
     const workerListEl = document.getElementById('workerList');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const exportCsvBtn2 = document.getElementById('exportCsvBtn2');
 
-    // ---------- Tabs ----------
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -364,7 +388,13 @@
         .replace(/"/g, '&quot;');
     }
 
-    // ---------- Create Warden ----------
+    function exportCsv() {
+      window.location.href = '/api/complaints/export.csv';
+    }
+
+    exportCsvBtn.addEventListener('click', exportCsv);
+    exportCsvBtn2.addEventListener('click', exportCsv);
+
     createBtn.addEventListener('click', async () => {
       createBtn.disabled = true;
       createMsg.className = 'msg';
@@ -424,7 +454,6 @@
       }
     });
 
-    // ---------- Load Wardens ----------
     async function loadWardens() {
       wardenList.innerHTML = '<div class="empty">Loading...</div>';
       try {
@@ -529,7 +558,6 @@
       }
     }
 
-    // ---------- Load Workers ----------
     async function loadWorkers() {
       workerListEl.innerHTML = '<div class="empty">Loading...</div>';
       try {
