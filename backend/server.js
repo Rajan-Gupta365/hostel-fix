@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode)
 
 const express = require('express');
 const cors = require('cors');
@@ -18,6 +18,22 @@ const EMAIL_SENDER_NAME = process.env.EMAIL_SENDER_NAME || 'Hostel Fix';
 const EMAIL_SENDER_ADDRESS = process.env.EMAIL_USER || 'hostelfix.help@gmail.com';
 const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || '';
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+
+// ============================================================
+// ALLOWED HOSTELS — Whitelist
+// For now, only ONE hostel is active. When expanding to more
+// hostels later, add them here and they'll show up in dropdowns.
+// ============================================================
+const ALLOWED_HOSTELS = [
+  { code: 'KP-25J', label: 'KP-25 Block J' }
+];
+
+// The single default hostel (used for migration of old data)
+const DEFAULT_HOSTEL = 'KP-25J';
+
+function isValidHostelCode(code) {
+  return ALLOWED_HOSTELS.some(h => h.code === code);
+}
 
 if (!BREVO_API_KEY) {
   console.error('WARNING: BREVO_API_KEY not set. OTP emails will fail.');
@@ -98,7 +114,6 @@ function generateOTP() {
 }
 
 function generateTempPassword() {
-  // 3 random words + 2-digit number — readable & secure
   const words = [
     'purple', 'tiger', 'cloud', 'river', 'happy', 'moon', 'silver', 'ocean',
     'forest', 'ember', 'cedar', 'amber', 'golden', 'crimson', 'azure', 'quiet'
@@ -161,6 +176,28 @@ async function backfillComplaintCodes() {
   }
   if (result.rows.length > 0) {
     console.log(`Backfilled ${result.rows.length} complaint codes.`);
+  }
+}
+
+// Force every existing hostel value to DEFAULT_HOSTEL (single-hostel mode)
+async function migrateAllHostelsToDefault() {
+  try {
+    const tables = ['complaints', 'wardens', 'students'];
+    let totalUpdated = 0;
+
+    for (const table of tables) {
+      const result = await pool.query(
+        `UPDATE ${table} SET hostel = $1 WHERE hostel IS DISTINCT FROM $1`,
+        [DEFAULT_HOSTEL]
+      );
+      totalUpdated += result.rowCount || 0;
+    }
+
+    if (totalUpdated > 0) {
+      console.log(`Migrated ${totalUpdated} rows to hostel=${DEFAULT_HOSTEL}.`);
+    }
+  } catch (err) {
+    console.error('Hostel migration error:', err.message);
   }
 }
 
@@ -259,6 +296,16 @@ async function sendWardenInviteEmail(toEmail, wardenName, username, tempPassword
 }
 
 // =============================================
+// CONFIG ROUTE — exposes allowed hostels to frontend
+// =============================================
+app.get('/api/config', (req, res) => {
+  res.json({
+    hostels: ALLOWED_HOSTELS,
+    default_hostel: DEFAULT_HOSTEL
+  });
+});
+
+// =============================================
 // STUDENT OTP + REGISTRATION ROUTES
 // =============================================
 
@@ -331,6 +378,9 @@ app.post('/api/student/register', async (req, res) => {
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    if (!isValidHostelCode(hostel)) {
+      return res.status(400).json({ error: 'Please select a valid hostel.' });
     }
 
     const existing = await pool.query(
@@ -450,7 +500,7 @@ app.get('/api/student/my-complaints', requireStudent(), async (req, res) => {
 });
 
 // =============================================
-// PASSWORD RESET ROUTES (all users)
+// PASSWORD RESET ROUTES
 // =============================================
 
 app.post('/api/auth/request-reset-otp', async (req, res) => {
@@ -572,7 +622,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
       [hash, found.user.id]
     );
 
-    // If it's a warden, clear must_change_password
     if (found.table === 'wardens') {
       await pool.query(
         'UPDATE wardens SET must_change_password = FALSE WHERE id = $1',
@@ -681,7 +730,6 @@ app.post('/api/auth/change-password', requireAuth(), async (req, res) => {
     const newHash = await bcrypt.hash(new_password, 10);
     await pool.query(`UPDATE ${table} SET password_hash = $1 WHERE id = $2`, [newHash, user.id]);
 
-    // If warden, clear must_change_password
     if (user.role === 'warden') {
       await pool.query('UPDATE wardens SET must_change_password = FALSE WHERE id = $1', [user.id]);
       req.session.user.must_change_password = false;
@@ -721,6 +769,9 @@ app.post('/api/admin/wardens', requireAdmin(), async (req, res) => {
     if (email && !isValidEmail(email)) {
       return res.status(400).json({ error: 'Please provide a valid email address' });
     }
+    if (!isValidHostelCode(hostel)) {
+      return res.status(400).json({ error: 'Please select a valid hostel.' });
+    }
 
     const existing = await pool.query(
       'SELECT id FROM wardens WHERE username = $1',
@@ -730,7 +781,6 @@ app.post('/api/admin/wardens', requireAdmin(), async (req, res) => {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
-    // Generate temporary password
     const tempPassword = generateTempPassword();
     const hash = await bcrypt.hash(tempPassword, 10);
 
@@ -743,7 +793,6 @@ app.post('/api/admin/wardens', requireAdmin(), async (req, res) => {
 
     const warden = result.rows[0];
 
-    // Send invite email if email was provided
     let emailSent = false;
     let emailError = null;
     if (email) {
@@ -823,9 +872,10 @@ app.post('/api/admin/wardens/:id/reset-password', requireAdmin(), async (req, re
 app.post('/api/complaints', requireStudent(), async (req, res) => {
   try {
     const {
-      student_name, student_roll, room_number, hostel,
+      student_name, student_roll, room_number,
       category, subcategory, description, priority
     } = req.body;
+    const hostel = (req.body.hostel || '').trim();
 
     if (!student_name || !student_roll || !room_number || !hostel ||
         !category || !subcategory) {
@@ -837,12 +887,18 @@ app.post('/api/complaints', requireStudent(), async (req, res) => {
       return res.status(403).json({ error: 'You can only submit complaints for yourself' });
     }
 
+    if (!isValidHostelCode(hostel)) {
+      return res.status(400).json({ error: 'Invalid hostel.' });
+    }
+
     const dupResult = await pool.query(
       `SELECT id, complaint_code FROM complaints
-       WHERE room_number = $1 AND subcategory = $2
+       WHERE LOWER(room_number) = LOWER($1)
+         AND LOWER(subcategory) = LOWER($2)
+         AND LOWER(hostel) = LOWER($3)
          AND status NOT IN ('CLOSED', 'REJECTED')
          AND created_at > NOW() - INTERVAL '1 day'`,
-      [room_number, subcategory]
+      [room_number, subcategory, hostel]
     );
 
     if (dupResult.rows.length > 0) {
@@ -886,10 +942,10 @@ app.get('/api/complaints', requireStaff(), async (req, res) => {
 
     if (req.session.user.role === 'warden') {
       params.push(req.session.user.hostel);
-      conditions.push(`hostel = $${params.length}`);
+      conditions.push(`LOWER(hostel) = LOWER($${params.length})`);
     } else if (hostel) {
       params.push(hostel);
-      conditions.push(`hostel = $${params.length}`);
+      conditions.push(`LOWER(hostel) = LOWER($${params.length})`);
     }
 
     if (status) {
@@ -915,7 +971,7 @@ app.get('/api/complaints', requireStaff(), async (req, res) => {
 app.get('/api/complaints/by-roll/:roll', requireStaff(), async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM complaints WHERE student_roll = $1 ORDER BY created_at DESC`,
+      `SELECT * FROM complaints WHERE LOWER(student_roll) = LOWER($1) ORDER BY created_at DESC`,
       [req.params.roll]
     );
     res.json(result.rows);
@@ -949,7 +1005,8 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
 
     const role = req.session.user.role;
 
-    if (role === 'warden' && check.rows[0].hostel !== req.session.user.hostel) {
+    if (role === 'warden' &&
+        check.rows[0].hostel.toLowerCase() !== req.session.user.hostel.toLowerCase()) {
       return res.status(403).json({ error: 'Not authorized for this hostel' });
     }
 
@@ -1001,8 +1058,10 @@ async function start() {
   try {
     await initSchema();
     await backfillComplaintCodes();
+    await migrateAllHostelsToDefault();
     app.listen(PORT, () => {
       console.log(`Hostel-Fix backend running at http://localhost:${PORT}`);
+      console.log(`Allowed hostels: ${ALLOWED_HOSTELS.map(h => h.code).join(', ')}`);
       console.log(`Home:      http://localhost:${PORT}/`);
       console.log(`Student:   http://localhost:${PORT}/student.html`);
       console.log(`Signup:    http://localhost:${PORT}/signup.html`);

@@ -475,7 +475,12 @@
       let filtered = allComplaints;
 
       if (filterStatus) filtered = filtered.filter(c => c.status === filterStatus);
-      if (filterHostel) filtered = filtered.filter(c => c.hostel.toLowerCase().includes(filterHostel));
+      // Case-insensitive hostel match
+      if (filterHostel) {
+        filtered = filtered.filter(c =>
+          String(c.hostel || '').toLowerCase().includes(filterHostel)
+        );
+      }
 
       if (search) {
         filtered = filtered.filter(c => {

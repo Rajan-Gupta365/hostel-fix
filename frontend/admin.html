@@ -68,7 +68,7 @@
       margin-bottom: 5px;
       color: #333;
     }
-    input {
+    input, select {
       width: 100%;
       padding: 9px 12px;
       border: 1px solid #ccd3da;
@@ -77,7 +77,7 @@
       font-family: inherit;
       background: #fafbfc;
     }
-    input:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: #0d3b66;
       background: #ffffff;
@@ -197,7 +197,7 @@
         <div class="form-grid">
           <div>
             <label for="w_username">Username</label>
-            <input type="text" id="w_username" placeholder="e.g., warden_b" />
+            <input type="text" id="w_username" placeholder="e.g., warden_j1" />
           </div>
           <div>
             <label for="w_fullname">Full Name</label>
@@ -209,7 +209,10 @@
           </div>
           <div>
             <label for="w_hostel">Hostel</label>
-            <input type="text" id="w_hostel" placeholder="e.g., Hostel B" />
+            <select id="w_hostel" required>
+              <option value="">-- Select Hostel --</option>
+              <option value="KP-25J">KP-25 Block J</option>
+            </select>
           </div>
         </div>
         <p class="hint">
@@ -238,7 +241,6 @@
     const createMsg = document.getElementById('createMsg');
     const wardenList = document.getElementById('wardenList');
 
-    // ---------- Auth guard ----------
     async function guard() {
       try {
         const res = await fetch('/api/auth/me');
@@ -265,7 +267,6 @@
       window.location.href = 'login.html';
     });
 
-    // ---------- Create warden ----------
     createBtn.addEventListener('click', async () => {
       createBtn.disabled = true;
       createMsg.className = 'msg';
@@ -274,7 +275,7 @@
         username: document.getElementById('w_username').value.trim(),
         full_name: document.getElementById('w_fullname').value.trim(),
         email: document.getElementById('w_email').value.trim().toLowerCase(),
-        hostel: document.getElementById('w_hostel').value.trim()
+        hostel: document.getElementById('w_hostel').value
       };
 
       if (!payload.username || !payload.hostel) {
@@ -325,7 +326,6 @@
       }
     });
 
-    // ---------- Load wardens ----------
     async function loadWardens() {
       wardenList.innerHTML = '<div class="empty">Loading...</div>';
       try {

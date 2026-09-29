@@ -46,11 +46,7 @@
       font-size: 12px;
       color: #999;
     }
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .step { display: flex; align-items: center; gap: 6px; }
     .step .dot {
       width: 22px;
       height: 22px;
@@ -76,7 +72,7 @@
       margin-top: 14px;
       color: #333;
     }
-    input {
+    input, select {
       width: 100%;
       padding: 11px 12px;
       border: 1px solid #ccd3da;
@@ -85,7 +81,7 @@
       font-family: inherit;
       background: #fafbfc;
     }
-    input:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: #0d3b66;
       background: #ffffff;
@@ -149,10 +145,7 @@
       margin-top: 20px;
       font-size: 13px;
     }
-    .links a {
-      color: #0d3b66;
-      text-decoration: none;
-    }
+    .links a { color: #0d3b66; text-decoration: none; }
     .links a:hover { text-decoration: underline; }
     .hidden { display: none !important; }
   </style>
@@ -199,10 +192,13 @@
       <input type="text" id="roll_number" placeholder="e.g., CSE2021045" />
 
       <label for="hostel">Hostel</label>
-      <input type="text" id="hostel" placeholder="e.g., Hostel B" />
+      <select id="hostel" required>
+        <option value="">-- Select Hostel --</option>
+        <option value="KP-25J">KP-25 Block J</option>
+      </select>
 
       <label for="room_number">Room Number</label>
-      <input type="text" id="room_number" placeholder="e.g., 214" />
+      <input type="text" id="room_number" placeholder="e.g., 419" />
 
       <label for="password">Create Password (min 8 chars)</label>
       <input type="password" id="password" placeholder="At least 8 characters" autocomplete="new-password" />
@@ -295,12 +291,11 @@
         code: codeInput.value.trim(),
         full_name: document.getElementById('full_name').value.trim(),
         roll_number: document.getElementById('roll_number').value.trim(),
-        hostel: document.getElementById('hostel').value.trim(),
+        hostel: document.getElementById('hostel').value,
         room_number: document.getElementById('room_number').value.trim(),
         password: document.getElementById('password').value
       };
 
-      // Simple validation
       if (!payload.code || payload.code.length !== 6) {
         showMsg(msg2, 'Please enter the 6-digit code from your email.', 'error');
         return;
@@ -342,7 +337,6 @@
       }
     });
 
-    // Auto-focus OTP input when it becomes visible
     codeInput.addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/[^0-9]/g, '');
     });
