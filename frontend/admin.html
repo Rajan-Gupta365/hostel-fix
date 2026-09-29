@@ -12,7 +12,7 @@
       color: #1a1a1a;
       padding: 20px;
     }
-    .container { max-width: 900px; margin: 0 auto; }
+    .container { max-width: 1100px; margin: 0 auto; }
     .header {
       display: flex;
       justify-content: space-between;
@@ -170,6 +170,58 @@
       margin-top: 6px;
       line-height: 1.5;
     }
+
+    /* Worker performance */
+    .worker-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      border-left: 5px solid #0d3b66;
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .worker-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d3b66;
+    }
+    .worker-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #555;
+    }
+    .worker-stats strong { color: #333; }
+    .worker-stars {
+      color: #f5b301;
+      font-size: 16px;
+      letter-spacing: 2px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid #e0e4e8;
+      margin-bottom: 16px;
+    }
+    .tab {
+      padding: 10px 18px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-family: inherit;
+    }
+    .tab.active { color: #0d3b66; border-bottom-color: #0d3b66; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
   </style>
 </head>
 <body>
@@ -192,41 +244,65 @@
 
     <div id="main" style="display:none;">
 
-      <div class="card">
-        <h2>➕ Create New Warden</h2>
-        <div class="form-grid">
-          <div>
-            <label for="w_username">Username</label>
-            <input type="text" id="w_username" placeholder="e.g., warden_j1" />
-          </div>
-          <div>
-            <label for="w_fullname">Full Name</label>
-            <input type="text" id="w_fullname" placeholder="e.g., Suresh Kumar" />
-          </div>
-          <div>
-            <label for="w_email">Email (for invite)</label>
-            <input type="email" id="w_email" placeholder="e.g., warden@example.com" />
-          </div>
-          <div>
-            <label for="w_hostel">Hostel</label>
-            <select id="w_hostel" required>
-              <option value="">-- Select Hostel --</option>
-              <option value="KP-25J">KP-25 Block J</option>
-            </select>
-          </div>
-        </div>
-        <p class="hint">
-          A temporary password will be generated and emailed to the warden.
-          They will be asked to change it on first login.
-        </p>
-        <button class="btn btn-primary" id="createBtn">Create Warden</button>
-        <div class="msg" id="createMsg"></div>
+      <div class="tabs">
+        <button class="tab active" data-tab="wardens">👥 Wardens</button>
+        <button class="tab" data-tab="workers">👷 Worker Performance</button>
       </div>
 
-      <div class="card">
-        <h2>👥 All Wardens</h2>
-        <div id="wardenList">
-          <div class="empty">Loading...</div>
+      <!-- ============ WARDENS TAB ============ -->
+      <div class="tab-panel active" id="panel-wardens">
+
+        <div class="card">
+          <h2>➕ Create New Warden</h2>
+          <div class="form-grid">
+            <div>
+              <label for="w_username">Username</label>
+              <input type="text" id="w_username" placeholder="e.g., warden_j1" />
+            </div>
+            <div>
+              <label for="w_fullname">Full Name</label>
+              <input type="text" id="w_fullname" placeholder="e.g., Suresh Kumar" />
+            </div>
+            <div>
+              <label for="w_email">Email (for invite)</label>
+              <input type="email" id="w_email" placeholder="e.g., warden@example.com" />
+            </div>
+            <div>
+              <label for="w_hostel">Hostel</label>
+              <select id="w_hostel" required>
+                <option value="">-- Select Hostel --</option>
+                <option value="KP-25J">KP-25 Block J</option>
+              </select>
+            </div>
+          </div>
+          <p class="hint">
+            A temporary password will be generated and emailed to the warden.
+            They will be asked to change it on first login.
+          </p>
+          <button class="btn btn-primary" id="createBtn">Create Warden</button>
+          <div class="msg" id="createMsg"></div>
+        </div>
+
+        <div class="card">
+          <h2>👥 All Wardens</h2>
+          <div id="wardenList">
+            <div class="empty">Loading...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============ WORKERS TAB ============ -->
+      <div class="tab-panel" id="panel-workers">
+        <div class="card">
+          <h2>👷 Worker Performance</h2>
+          <p class="hint" style="margin-bottom:12px;">
+            These statistics are based on student ratings after complaints are resolved.
+            Only workers who have been assigned to complaints appear here.
+          </p>
+          <div id="workerList">
+            <div class="empty">Loading...</div>
+          </div>
         </div>
       </div>
 
@@ -240,6 +316,19 @@
     const createBtn = document.getElementById('createBtn');
     const createMsg = document.getElementById('createMsg');
     const wardenList = document.getElementById('wardenList');
+    const workerListEl = document.getElementById('workerList');
+
+    // ---------- Tabs ----------
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+
+        if (tab.dataset.tab === 'workers') loadWorkers();
+      });
+    });
 
     async function guard() {
       try {
@@ -267,6 +356,15 @@
       window.location.href = 'login.html';
     });
 
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ---------- Create Warden ----------
     createBtn.addEventListener('click', async () => {
       createBtn.disabled = true;
       createMsg.className = 'msg';
@@ -326,6 +424,7 @@
       }
     });
 
+    // ---------- Load Wardens ----------
     async function loadWardens() {
       wardenList.innerHTML = '<div class="empty">Loading...</div>';
       try {
@@ -398,14 +497,6 @@
       }
     }
 
-    function escapeHtml(str) {
-      return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
     async function deactivate(id) {
       if (!confirm('Deactivate this warden? They will not be able to log in.')) return;
       await fetch('/api/admin/wardens/' + id + '/deactivate', { method: 'PATCH' });
@@ -435,6 +526,42 @@
       } else {
         alert('Password reset. Warden must change it on next login.');
         loadWardens();
+      }
+    }
+
+    // ---------- Load Workers ----------
+    async function loadWorkers() {
+      workerListEl.innerHTML = '<div class="empty">Loading...</div>';
+      try {
+        const res = await fetch('/api/workers/performance');
+        if (!res.ok) throw new Error();
+        const workers = await res.json();
+
+        if (!workers || workers.length === 0) {
+          workerListEl.innerHTML = '<div class="empty">No workers have been assigned yet.</div>';
+          return;
+        }
+
+        workerListEl.innerHTML = '';
+        for (const w of workers) {
+          const div = document.createElement('div');
+          div.className = 'worker-card';
+          const avg = w.avg_rating ? Number(w.avg_rating) : null;
+          const starsShown = avg ? '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg)) : '—';
+          div.innerHTML = `
+            <div class="worker-name">👷 ${escapeHtml(w.worker_name)}</div>
+            <div class="worker-stats">
+              <span class="worker-stars">${starsShown}</span>
+              <span>${avg ? avg.toFixed(2) + ' / 5' : 'No ratings'}</span>
+              <span><strong>${w.total_jobs}</strong> total jobs</span>
+              <span><strong>${w.completed_jobs}</strong> completed</span>
+              <span><strong>${w.rated_jobs}</strong> rated</span>
+            </div>
+          `;
+          workerListEl.appendChild(div);
+        }
+      } catch (err) {
+        workerListEl.innerHTML = '<div class="empty">Could not load worker performance.</div>';
       }
     }
 

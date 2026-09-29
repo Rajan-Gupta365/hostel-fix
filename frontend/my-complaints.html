@@ -34,15 +34,9 @@
       text-decoration: none;
       font-family: inherit;
     }
-    .nav-links a {
-      background: #e8f0fe;
-      color: #0d3b66;
-    }
+    .nav-links a { background: #e8f0fe; color: #0d3b66; }
     .nav-links a:hover { background: #d3e2fb; }
-    .nav-links button.logout {
-      background: #b3261e;
-      color: #ffffff;
-    }
+    .nav-links button.logout { background: #b3261e; color: #ffffff; }
     .nav-links button.logout:hover { background: #8a1c16; }
 
     .welcome-box {
@@ -57,6 +51,26 @@
     }
     .welcome-box strong { color: #0d3b66; }
 
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid #e0e4e8;
+      margin-bottom: 16px;
+    }
+    .tab {
+      padding: 10px 18px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-family: inherit;
+    }
+    .tab.active { color: #0d3b66; border-bottom-color: #0d3b66; }
+
     .results { display: grid; gap: 12px; }
     .card {
       background: #ffffff;
@@ -67,9 +81,8 @@
     }
     .card.status-PENDING      { border-left-color: #f0ad00; }
     .card.status-ASSIGNED     { border-left-color: #1976d2; }
-    .card.status-IN_PROGRESS  { border-left-color: #1976d2; }
     .card.status-RESOLVED     { border-left-color: #1e7e34; }
-    .card.status-CLOSED       { border-left-color: #555; opacity: 0.8; }
+    .card.status-CLOSED       { border-left-color: #555; opacity: 0.85; }
     .card.status-REOPENED     { border-left-color: #b3261e; }
     .card.status-REJECTED     { border-left-color: #b3261e; opacity: 0.85; }
     .card.priority-EMERGENCY {
@@ -109,13 +122,113 @@
     .badge.EMERGENCY  { background: #fdecea; color: #b3261e; }
     .badge.PENDING    { background: #fff4d6; color: #8a6300; }
     .badge.ASSIGNED   { background: #e3f0ff; color: #1a4fa0; }
-    .badge.IN_PROGRESS{ background: #e3f0ff; color: #1a4fa0; }
     .badge.RESOLVED   { background: #e6f4ea; color: #1e7e34; }
     .badge.CLOSED     { background: #e8eaed; color: #555; }
     .badge.REOPENED   { background: #fdecea; color: #b3261e; }
     .badge.REJECTED   { background: #fdecea; color: #b3261e; }
     .meta { font-size: 13px; color: #555; line-height: 1.6; }
     .meta strong { color: #333; }
+
+    .attribution {
+      background: #f8fafc;
+      border-left: 3px solid #cbd5e1;
+      padding: 8px 12px;
+      margin-top: 10px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.6;
+    }
+    .attribution strong { color: #334155; }
+
+    .rate-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #e0e4e8;
+    }
+    .rate-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0d3b66;
+      margin-bottom: 4px;
+    }
+    .rate-sub {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .stars {
+      display: flex;
+      gap: 6px;
+      font-size: 30px;
+      line-height: 1;
+      margin-bottom: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .star {
+      color: #d1d5db;
+      transition: color 0.1s, transform 0.1s;
+    }
+    .star:hover { transform: scale(1.15); }
+    .star.filled { color: #f5b301; }
+    textarea.rate-comment {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+      min-height: 60px;
+      background: #fafbfc;
+    }
+    textarea.rate-comment:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    .rate-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .rate-buttons button {
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      font-family: inherit;
+    }
+    .rate-buttons button.submit {
+      background: #0d3b66;
+      color: white;
+      border-color: #0d3b66;
+    }
+    .rate-buttons button.submit:hover { background: #092a4a; }
+    .rate-buttons button.submit:disabled { background: #8899aa; cursor: not-allowed; }
+    .rate-buttons button.skip:hover { background: #f0f3f7; }
+
+    .rated-display {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #166534;
+      line-height: 1.6;
+    }
+    .rated-display .stars-shown {
+      font-size: 18px;
+      color: #f5b301;
+      letter-spacing: 2px;
+    }
+
     .actions {
       display: flex;
       gap: 8px;
@@ -168,6 +281,17 @@
       text-align: center;
     }
     .hidden { display: none !important; }
+
+    .auto-close-note {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -184,6 +308,13 @@
 
     <div class="welcome-box hidden" id="welcomeBox"></div>
 
+    <div class="auto-close-note" id="autoCloseNote"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="active" id="tabActive">🔴 Active (<span id="countActive">0</span>)</button>
+      <button class="tab" data-tab="solved" id="tabSolved">✅ Solved (<span id="countSolved">0</span>)</button>
+    </div>
+
     <div class="results" id="results">
       <div class="loading">Loading your complaints...</div>
     </div>
@@ -193,8 +324,32 @@
     const resultsEl = document.getElementById('results');
     const welcomeBox = document.getElementById('welcomeBox');
     const logoutBtn = document.getElementById('logoutBtn');
+    const countActiveEl = document.getElementById('countActive');
+    const countSolvedEl = document.getElementById('countSolved');
+    const autoCloseNote = document.getElementById('autoCloseNote');
 
     let currentUser = null;
+    let allComplaints = [];
+    let currentTab = 'active'; // 'active' | 'solved'
+    const draftRatings = {};
+
+    // Active vs Solved classification for STUDENTS
+    // RESOLVED goes to Active (student still needs to confirm + rate)
+    const ACTIVE_STATUSES = ['PENDING', 'ASSIGNED', 'REOPENED', 'RESOLVED'];
+    const SOLVED_STATUSES = ['CLOSED', 'REJECTED'];
+
+    function isActive(c) { return ACTIVE_STATUSES.includes(c.status); }
+    function isSolved(c) { return SOLVED_STATUSES.includes(c.status); }
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.tab;
+        render();
+      });
+    });
 
     function formatDate(iso) {
       if (!iso) return '—';
@@ -209,12 +364,49 @@
         .replace(/"/g, '&quot;');
     }
 
+    function starsDisplay(rating) {
+      let s = '';
+      for (let i = 1; i <= 5; i++) {
+        s += i <= rating ? '★' : '☆';
+      }
+      return s;
+    }
+
+    function updateTabCounts() {
+      const a = allComplaints.filter(isActive).length;
+      const s = allComplaints.filter(isSolved).length;
+      countActiveEl.textContent = a;
+      countSolvedEl.textContent = s;
+    }
+
     function renderCard(c) {
       const div = document.createElement('div');
       div.className = `card status-${c.status} priority-${c.priority}`;
 
       const canConfirm = c.status === 'RESOLVED';
       const canReopen  = c.status === 'RESOLVED' || c.status === 'CLOSED';
+      const canRate    = (c.status === 'RESOLVED' || c.status === 'CLOSED')
+                         && c.assigned_to
+                         && !c.worker_rating;
+      const hasRating  = !!c.worker_rating;
+
+      let attributionHtml = '';
+      if (c.assigned_to || c.assigned_by_warden || c.resolved_by_warden) {
+        attributionHtml = '<div class="attribution">';
+        if (c.assigned_to) {
+          attributionHtml += '🔧 <strong>Worker:</strong> ' + escapeHtml(c.assigned_to);
+          if (c.assigned_by_warden) {
+            attributionHtml += ' · Assigned by <strong>' + escapeHtml(c.assigned_by_warden) + '</strong>';
+          }
+        } else {
+          attributionHtml += '⏳ Not yet assigned to a worker';
+        }
+        if (c.resolved_by_warden) {
+          attributionHtml += '<br>✅ <strong>Resolved by:</strong> ' + escapeHtml(c.resolved_by_warden);
+          if (c.resolved_at) attributionHtml += ' · ' + formatDate(c.resolved_at);
+        }
+        attributionHtml += '</div>';
+      }
 
       div.innerHTML = `
         <div class="card-top">
@@ -225,8 +417,6 @@
               Room <strong>${escapeHtml(c.room_number)}</strong>, ${escapeHtml(c.hostel)}<br>
               Category: ${escapeHtml(c.category)}<br>
               Submitted: ${formatDate(c.created_at)}
-              ${c.assigned_to ? '<br>Assigned to: ' + escapeHtml(c.assigned_to) : ''}
-              ${c.resolved_at ? '<br>Resolved: ' + formatDate(c.resolved_at) : ''}
               ${c.description ? '<br>Note: ' + escapeHtml(c.description) : ''}
               ${c.feedback ? '<br><strong>Feedback:</strong> ' + escapeHtml(c.feedback) : ''}
             </div>
@@ -236,6 +426,33 @@
             <span class="badge ${c.status}">${c.status}</span>
           </div>
         </div>
+
+        ${attributionHtml}
+
+        ${hasRating ? `
+          <div class="rated-display">
+            ✅ You rated <strong>${escapeHtml(c.assigned_to)}</strong>:
+            <span class="stars-shown">${starsDisplay(c.worker_rating)}</span>
+            (${c.worker_rating}/5)
+            ${c.worker_comment ? '<br>💬 <em>' + escapeHtml(c.worker_comment) + '</em>' : ''}
+          </div>
+        ` : ''}
+
+        ${canRate ? `
+          <div class="rate-section" data-complaint-id="${c.id}">
+            <div class="rate-title">How was ${escapeHtml(c.assigned_to)}'s work?</div>
+            <div class="rate-sub">Your feedback helps improve service. Optional.</div>
+            <div class="stars" data-complaint-id="${c.id}">
+              ${[1,2,3,4,5].map(n => `<span class="star" data-value="${n}">★</span>`).join('')}
+            </div>
+            <textarea class="rate-comment" placeholder="Add a comment (optional)" maxlength="300"></textarea>
+            <div class="rate-buttons">
+              <button class="submit" data-action="RATE_SUBMIT" data-id="${c.id}" disabled>Submit Rating</button>
+              <button class="skip" data-action="RATE_SKIP" data-id="${c.id}">Skip</button>
+            </div>
+          </div>
+        ` : ''}
+
         ${(canConfirm || canReopen) ? `
         <div class="actions">
           ${canConfirm ? '<button class="confirm" data-action="CONFIRM" data-id="' + c.id + '">✅ It\'s fixed</button>' : ''}
@@ -243,26 +460,84 @@
         </div>` : ''}
       `;
 
+      const starsEl = div.querySelector('.stars');
+      if (starsEl) {
+        const stars = starsEl.querySelectorAll('.star');
+        stars.forEach(star => {
+          star.addEventListener('mouseenter', () => {
+            const val = Number(star.dataset.value);
+            stars.forEach(s => s.classList.toggle('filled', Number(s.dataset.value) <= val));
+          });
+          star.addEventListener('mouseleave', () => {
+            const cur = draftRatings[c.id] || 0;
+            stars.forEach(s => s.classList.toggle('filled', Number(s.dataset.value) <= cur));
+          });
+          star.addEventListener('click', () => {
+            const val = Number(star.dataset.value);
+            draftRatings[c.id] = val;
+            stars.forEach(s => s.classList.toggle('filled', Number(s.dataset.value) <= val));
+            const submitBtn = div.querySelector('button[data-action="RATE_SUBMIT"]');
+            if (submitBtn) submitBtn.disabled = false;
+          });
+        });
+      }
+
       div.querySelectorAll('button[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
-          const action = btn.getAttribute('data-action');
-          const id = btn.getAttribute('data-id');
-          if (action === 'CONFIRM') studentConfirm(id);
-          if (action === 'REOPEN')  studentReopen(id);
+          const action = btn.dataset.action;
+          const id = btn.dataset.id;
+          if (action === 'CONFIRM') return studentConfirm(id);
+          if (action === 'REOPEN')  return studentReopen(id);
+          if (action === 'RATE_SKIP') {
+            const section = div.querySelector('.rate-section');
+            if (section) section.remove();
+            return;
+          }
+          if (action === 'RATE_SUBMIT') {
+            const commentEl = div.querySelector('.rate-comment');
+            const comment = commentEl ? commentEl.value.trim() : '';
+            const rating = draftRatings[id];
+            if (!rating) return;
+            return submitRating(id, rating, comment, btn);
+          }
         });
       });
 
       return div;
     }
 
-    function renderEmpty() {
-      resultsEl.innerHTML = `
-        <div class="empty">
-          <span class="icon">📭</span>
-          <div>You haven't reported anything yet.</div>
-          <a href="student.html">Report a Problem →</a>
-        </div>
-      `;
+    function renderEmpty(tab) {
+      if (tab === 'active') {
+        resultsEl.innerHTML = `
+          <div class="empty">
+            <span class="icon">📭</span>
+            <div>You have no active complaints.</div>
+            <a href="student.html">Report a Problem →</a>
+          </div>
+        `;
+      } else {
+        resultsEl.innerHTML = `
+          <div class="empty">
+            <span class="icon">📚</span>
+            <div>No solved complaints yet.</div>
+          </div>
+        `;
+      }
+    }
+
+    function render() {
+      updateTabCounts();
+
+      const filtered = currentTab === 'active'
+        ? allComplaints.filter(isActive)
+        : allComplaints.filter(isSolved);
+
+      if (!filtered || filtered.length === 0) {
+        renderEmpty(currentTab);
+      } else {
+        resultsEl.innerHTML = '';
+        filtered.forEach(c => resultsEl.appendChild(renderCard(c)));
+      }
     }
 
     async function loadMyComplaints() {
@@ -274,14 +549,8 @@
           return;
         }
         if (!res.ok) throw new Error();
-        const list = await res.json();
-
-        if (!list || list.length === 0) {
-          renderEmpty();
-        } else {
-          resultsEl.innerHTML = '';
-          list.forEach(c => resultsEl.appendChild(renderCard(c)));
-        }
+        allComplaints = await res.json();
+        render();
       } catch (err) {
         resultsEl.innerHTML = '<div class="error">Could not load your complaints. Try refreshing.</div>';
       }
@@ -315,12 +584,51 @@
       }
     }
 
+    async function submitRating(id, rating, comment, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      try {
+        const res = await fetch('/api/complaints/' + id + '/rate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating, comment })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not submit rating.');
+          btn.disabled = false;
+          btn.textContent = 'Submit Rating';
+          return;
+        }
+        await loadMyComplaints();
+      } catch (err) {
+        alert('Could not submit rating.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Rating';
+      }
+    }
+
     logoutBtn.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = 'student-login.html';
     });
 
-    // ---------- Init ----------
+    // ---------- Auto-close old RESOLVED complaints ----------
+    async function autoCloseOldOnLoad() {
+      try {
+        const res = await fetch('/api/complaints/auto-close-my', { method: 'POST' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.closed > 0) {
+          autoCloseNote.textContent = '📌 ' + data.closed +
+            ' older resolved complaint(s) were auto-closed after 7 days. Check the Solved tab.';
+          autoCloseNote.style.display = 'block';
+        }
+      } catch (err) {
+        // Silent — not critical if it fails
+      }
+    }
+
     (async () => {
       try {
         const meRes = await fetch('/api/student/me');
@@ -337,7 +645,9 @@
           escapeHtml(currentUser.room_number);
         welcomeBox.classList.remove('hidden');
 
-        loadMyComplaints();
+        // Auto-close old resolved, then load
+        await autoCloseOldOnLoad();
+        await loadMyComplaints();
       } catch (err) {
         window.location.href = 'student-login.html';
       }

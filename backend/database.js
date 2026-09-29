@@ -22,7 +22,6 @@ const pool = new Pool({
 });
 
 async function initSchema() {
-  // Complaints table
   const complaintsSQL = `
     CREATE TABLE IF NOT EXISTS complaints (
       id SERIAL PRIMARY KEY,
@@ -42,11 +41,18 @@ async function initSchema() {
       resolved_at TIMESTAMPTZ,
       closed_at TIMESTAMPTZ,
       reopen_count INTEGER NOT NULL DEFAULT 0,
-      feedback TEXT
+      feedback TEXT,
+      -- Phase 3F: Worker attribution
+      assigned_by_warden TEXT,
+      assigned_at TIMESTAMPTZ,
+      resolved_by_warden TEXT,
+      -- Phase 3H: Worker feedback
+      worker_rating INTEGER,
+      worker_comment TEXT,
+      rated_at TIMESTAMPTZ
     )
   `;
 
-  // Admins
   const adminsSQL = `
     CREATE TABLE IF NOT EXISTS admins (
       id SERIAL PRIMARY KEY,
@@ -57,7 +63,6 @@ async function initSchema() {
     )
   `;
 
-  // Wardens
   const wardensSQL = `
     CREATE TABLE IF NOT EXISTS wardens (
       id SERIAL PRIMARY KEY,
@@ -72,7 +77,6 @@ async function initSchema() {
     )
   `;
 
-  // Students
   const studentsSQL = `
     CREATE TABLE IF NOT EXISTS students (
       id SERIAL PRIMARY KEY,
@@ -87,7 +91,6 @@ async function initSchema() {
     )
   `;
 
-  // OTP codes
   const otpSQL = `
     CREATE TABLE IF NOT EXISTS otp_codes (
       id SERIAL PRIMARY KEY,
@@ -109,7 +112,6 @@ async function initSchema() {
 
     // --- Migrations for existing tables ---
 
-    // complaints.complaint_code
     await pool.query(`
       ALTER TABLE complaints
       ADD COLUMN IF NOT EXISTS complaint_code TEXT
@@ -128,16 +130,42 @@ async function initSchema() {
       END $$;
     `);
 
-    // wardens.email
     await pool.query(`
       ALTER TABLE wardens
       ADD COLUMN IF NOT EXISTS email TEXT
     `);
 
-    // wardens.must_change_password
     await pool.query(`
       ALTER TABLE wardens
       ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+
+    // Phase 3F migrations
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS assigned_by_warden TEXT
+    `);
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ
+    `);
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS resolved_by_warden TEXT
+    `);
+
+    // Phase 3H migrations
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS worker_rating INTEGER
+    `);
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS worker_comment TEXT
+    `);
+    await pool.query(`
+      ALTER TABLE complaints
+      ADD COLUMN IF NOT EXISTS rated_at TIMESTAMPTZ
     `);
 
     console.log('Database schema ready (complaints, admins, wardens, students, otp_codes)');

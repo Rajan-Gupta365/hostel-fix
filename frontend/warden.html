@@ -77,6 +77,29 @@
     }
     .stat strong { color: #0d3b66; font-size: 15px; }
 
+    /* Tabs */
+    .tabs {
+      max-width: 1100px;
+      margin: 0 auto 16px;
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid #e0e4e8;
+    }
+    .tab {
+      padding: 10px 18px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-family: inherit;
+    }
+    .tab.active { color: #0d3b66; border-bottom-color: #0d3b66; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
     .search-bar {
       max-width: 1100px;
       margin: 0 auto 12px;
@@ -146,6 +169,17 @@
       cursor: pointer;
       font-family: inherit;
     }
+    .controls button.print {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      color: #0d3b66;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
     .last-updated { font-size: 12px; color: #888; margin-left: auto; }
     .list { max-width: 1100px; margin: 0 auto; display: grid; gap: 12px; }
     .card {
@@ -161,7 +195,6 @@
     .card.priority-NORMAL    { border-left-color: #1976d2; }
     .card.status-PENDING      { background: #fffdf5; }
     .card.status-ASSIGNED     { background: #f5faff; }
-    .card.status-IN_PROGRESS  { background: #f5faff; }
     .card.status-RESOLVED     { background: #f4fbf6; }
     .card.status-CLOSED       { background: #f4f6f8; opacity: 0.75; }
     .card.status-REOPENED     { background: #fff5f5; }
@@ -199,13 +232,34 @@
     .badge.EMERGENCY  { background: #fdecea; color: #b3261e; }
     .badge.PENDING    { background: #fff4d6; color: #8a6300; }
     .badge.ASSIGNED   { background: #e3f0ff; color: #1a4fa0; }
-    .badge.IN_PROGRESS{ background: #e3f0ff; color: #1a4fa0; }
     .badge.RESOLVED   { background: #e6f4ea; color: #1e7e34; }
     .badge.CLOSED     { background: #e8eaed; color: #555; }
     .badge.REOPENED   { background: #fdecea; color: #b3261e; }
     .badge.REJECTED   { background: #f0f0f0; color: #555; }
     .meta { font-size: 13px; color: #555; line-height: 1.55; }
     .meta strong { color: #333; }
+
+    .attribution {
+      background: #f8fafc;
+      border-left: 3px solid #cbd5e1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.6;
+    }
+    .attribution strong { color: #334155; }
+    .rated-badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
     .actions {
       display: flex;
       gap: 8px;
@@ -214,16 +268,8 @@
       border-top: 1px dashed #e0e4e8;
       align-items: center;
     }
-    .actions input, .actions select {
-      padding: 7px 10px;
-      border-radius: 6px;
-      border: 1px solid #ccd3da;
-      font-size: 13px;
-      font-family: inherit;
-      background: #ffffff;
-    }
     .actions button {
-      padding: 7px 12px;
+      padding: 8px 14px;
       border-radius: 6px;
       border: 1px solid #ccd3da;
       background: #ffffff;
@@ -234,18 +280,125 @@
     }
     .actions button:hover { background: #f0f3f7; }
     .actions button.assign { background: #0d3b66; color: white; border-color: #0d3b66; }
-    .actions button.progress { background: #1976d2; color: white; border-color: #1976d2; }
+    .actions button.change-staff { background: #f0ad00; color: #333; border-color: #f0ad00; }
     .actions button.resolve { background: #1e7e34; color: white; border-color: #1e7e34; }
     .actions button.reject  { background: #b3261e; color: white; border-color: #b3261e; }
     .actions button.reopen  { background: #f0ad00; color: #333; border-color: #f0ad00; }
+
     .empty { text-align: center; padding: 40px; color: #888; background: #ffffff; border-radius: 10px; }
     .loading { text-align: center; padding: 30px; color: #666; }
+
+    /* Worker performance */
+    .worker-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      border-left: 5px solid #0d3b66;
+      display: grid;
+      gap: 8px;
+      max-width: 1100px;
+      margin: 0 auto 12px;
+    }
+    .worker-name { font-size: 16px; font-weight: 700; color: #0d3b66; }
+    .worker-stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: #555; }
+    .worker-stats strong { color: #333; }
+    .worker-stars { color: #f5b301; font-size: 16px; letter-spacing: 2px; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+    .modal-box {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    .modal-box h3 {
+      font-size: 18px;
+      color: #0d3b66;
+      margin-bottom: 6px;
+    }
+    .modal-sub {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .modal-box input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #ccd3da;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fafbfc;
+    }
+    .modal-box input:focus {
+      outline: none;
+      border-color: #0d3b66;
+      background: #ffffff;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+    .modal-buttons button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #ccd3da;
+      background: #ffffff;
+      font-family: inherit;
+    }
+    .modal-buttons button.primary {
+      background: #0d3b66;
+      color: white;
+      border-color: #0d3b66;
+    }
+    .modal-buttons button.primary:disabled {
+      background: #8899aa;
+      cursor: not-allowed;
+    }
+    .modal-buttons button:hover:not(:disabled) { opacity: 0.9; }
+    .modal-err {
+      margin-top: 10px;
+      color: #b3261e;
+      font-size: 13px;
+      display: none;
+    }
+
+    /* Print */
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea {
+        position: absolute;
+        left: 0; top: 0;
+        width: 100%;
+        padding: 20px;
+      }
+    }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-  <div class="header">
+  <div class="header print-hidden">
     <div class="header-left">
       <a href="index.html" class="back">← Home</a>
       <h1>Warden Dashboard</h1>
@@ -258,40 +411,65 @@
     </div>
   </div>
 
-  <div class="stats" id="stats" style="max-width:1100px; margin: 0 auto 12px;"></div>
-
-  <div class="search-bar">
-    <input
-      type="text"
-      class="search"
-      id="searchInput"
-      placeholder="🔍 Search by complaint code (HF-0047), room number, student name, roll number, or problem..."
-    />
-    <button class="clear-search" id="clearSearchBtn">Clear</button>
+  <!-- Primary tabs: Complaints vs Workers -->
+  <div class="tabs print-hidden" id="primaryTabs">
+    <button class="tab active" data-tab="complaints">📋 Complaints</button>
+    <button class="tab" data-tab="workers">👷 Worker Performance</button>
   </div>
 
-  <div class="controls">
-    <label for="filterHostel">Hostel</label>
-    <input type="text" id="filterHostel" placeholder="e.g., Hostel B" style="width:140px;" />
+  <!-- ============ COMPLAINTS PANEL ============ -->
+  <div class="tab-panel active" id="panel-complaints">
 
-    <label for="filterStatus">Status</label>
-    <select id="filterStatus">
-      <option value="">All</option>
-      <option value="PENDING">Pending</option>
-      <option value="ASSIGNED">Assigned</option>
-      <option value="IN_PROGRESS">In Progress</option>
-      <option value="RESOLVED">Resolved</option>
-      <option value="CLOSED">Closed</option>
-      <option value="REOPENED">Reopened</option>
-      <option value="REJECTED">Rejected</option>
-    </select>
+    <!-- Secondary tabs: Active vs Solved -->
+    <div class="tabs print-hidden" id="secondaryTabs" style="max-width:1100px; margin: 0 auto 12px;">
+      <button class="tab active" data-subtab="active" id="tabActive">🔴 Active (<span id="countActive">0</span>)</button>
+      <button class="tab" data-subtab="solved" id="tabSolved">✅ Solved (<span id="countSolved">0</span>)</button>
+    </div>
 
-    <button class="primary" id="refreshBtn">Refresh</button>
-    <span class="last-updated" id="lastUpdated"></span>
+    <div class="stats print-hidden" id="stats" style="max-width:1100px; margin: 0 auto 12px;"></div>
+
+    <div class="search-bar print-hidden">
+      <input
+        type="text"
+        class="search"
+        id="searchInput"
+        placeholder="🔍 Search by code, room, student name, roll, worker..."
+      />
+      <button class="clear-search" id="clearSearchBtn">Clear</button>
+    </div>
+
+    <div class="controls print-hidden">
+      <label for="filterHostel">Hostel</label>
+      <input type="text" id="filterHostel" placeholder="e.g., KP-25J" style="width:120px;" />
+
+      <label for="filterStatus">Status</label>
+      <select id="filterStatus">
+        <option value="">All</option>
+        <option value="PENDING">Pending</option>
+        <option value="ASSIGNED">Assigned</option>
+        <option value="RESOLVED">Resolved</option>
+        <option value="CLOSED">Closed</option>
+        <option value="REOPENED">Reopened</option>
+        <option value="REJECTED">Rejected</option>
+      </select>
+
+      <button class="primary" id="refreshBtn">Refresh</button>
+      <button class="print" id="printTaskListBtn" title="Print active tasks">🖨️ Print Task List</button>
+      <span class="last-updated" id="lastUpdated"></span>
+    </div>
+
+    <div class="list print-hidden" id="list">
+      <div class="loading">Loading complaints...</div>
+    </div>
+
+    <div id="printArea" class="hidden"></div>
   </div>
 
-  <div class="list" id="list">
-    <div class="loading">Loading complaints...</div>
+  <!-- ============ WORKERS PANEL ============ -->
+  <div class="tab-panel" id="panel-workers">
+    <div id="workerList" style="max-width:1100px; margin: 0 auto;">
+      <div class="loading">Loading worker performance...</div>
+    </div>
   </div>
 
   <script>
@@ -302,15 +480,55 @@
     const searchInputEl = document.getElementById('searchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     const refreshBtn = document.getElementById('refreshBtn');
+    const printTaskListBtn = document.getElementById('printTaskListBtn');
     const lastUpdatedEl = document.getElementById('lastUpdated');
     const userInfoEl = document.getElementById('userInfo');
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
     const adminLink = document.getElementById('adminLink');
     const logoutBtn = document.getElementById('logoutBtn');
+    const printArea = document.getElementById('printArea');
+    const workerListEl = document.getElementById('workerList');
+    const countActiveEl = document.getElementById('countActive');
+    const countSolvedEl = document.getElementById('countSolved');
 
     let allComplaints = [];
     let currentUser = null;
+    let currentSubTab = 'active'; // 'active' | 'solved'
+    let autoRefreshTimer = null;
+    let modalOpen = false;
+
+    // Active vs Solved classification
+    const ACTIVE_STATUSES = ['PENDING', 'ASSIGNED', 'REOPENED'];
+    const SOLVED_STATUSES = ['RESOLVED', 'CLOSED', 'REJECTED'];
+
+    function isActiveComplaint(c) {
+      return ACTIVE_STATUSES.includes(c.status);
+    }
+    function isSolvedComplaint(c) {
+      return SOLVED_STATUSES.includes(c.status);
+    }
+
+    // ---------- Primary tabs ----------
+    document.querySelectorAll('#primaryTabs .tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#primaryTabs .tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'workers') loadWorkers();
+      });
+    });
+
+    // ---------- Secondary tabs ----------
+    document.querySelectorAll('#secondaryTabs .tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#secondaryTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentSubTab = tab.dataset.subtab;
+        render();
+      });
+    });
 
     async function checkAuth() {
       try {
@@ -322,7 +540,6 @@
         const data = await res.json();
         currentUser = data.user;
 
-        // Force password change if flagged
         if (currentUser.role === 'warden' && currentUser.must_change_password) {
           window.location.href = 'change-password.html?force=1';
           return false;
@@ -385,13 +602,12 @@
     function renderStats() {
       const counts = {
         total: allComplaints.length,
-        pending: 0, assigned: 0, inProgress: 0,
-        resolved: 0, reopened: 0, emergency: 0
+        pending: 0, assigned: 0, resolved: 0,
+        reopened: 0, emergency: 0
       };
       for (const c of allComplaints) {
         if (c.status === 'PENDING') counts.pending++;
         if (c.status === 'ASSIGNED') counts.assigned++;
-        if (c.status === 'IN_PROGRESS') counts.inProgress++;
         if (c.status === 'RESOLVED') counts.resolved++;
         if (c.status === 'REOPENED') counts.reopened++;
         if (c.priority === 'EMERGENCY') counts.emergency++;
@@ -400,17 +616,75 @@
         <div class="stat">Total: <strong>${counts.total}</strong></div>
         <div class="stat">Pending: <strong>${counts.pending}</strong></div>
         <div class="stat">Assigned: <strong>${counts.assigned}</strong></div>
-        <div class="stat">In Progress: <strong>${counts.inProgress}</strong></div>
         <div class="stat">Resolved: <strong>${counts.resolved}</strong></div>
         <div class="stat" style="color:#b3261e;">Reopened: <strong>${counts.reopened}</strong></div>
         <div class="stat" style="color:#b3261e;">Emergency: <strong>${counts.emergency}</strong></div>
       `;
+
+      // Update tab counts
+      const activeCount = allComplaints.filter(isActiveComplaint).length;
+      const solvedCount = allComplaints.filter(isSolvedComplaint).length;
+      countActiveEl.textContent = activeCount;
+      countSolvedEl.textContent = solvedCount;
     }
 
     function renderCard(c) {
       const div = document.createElement('div');
       div.className = `card priority-${c.priority} status-${c.status}`;
       const isFinal = c.status === 'CLOSED' || c.status === 'REJECTED';
+
+      let attributionHtml = '';
+      if (c.assigned_by_warden || c.assigned_to || c.resolved_by_warden || c.worker_rating) {
+        attributionHtml = '<div class="attribution">';
+        if (c.assigned_to) {
+          attributionHtml += '🔧 <strong>Worker:</strong> ' + escapeHtml(c.assigned_to);
+          if (c.assigned_by_warden) {
+            attributionHtml += ' · Assigned by <strong>' + escapeHtml(c.assigned_by_warden) + '</strong>';
+          }
+          if (c.assigned_at) {
+            attributionHtml += ' (' + timeAgo(c.assigned_at) + ')';
+          }
+        } else {
+          attributionHtml += '⏳ Not yet assigned';
+        }
+        if (c.resolved_by_warden) {
+          attributionHtml += '<br>✅ <strong>Resolved by:</strong> ' + escapeHtml(c.resolved_by_warden);
+          if (c.resolved_at) attributionHtml += ' · ' + formatDate(c.resolved_at);
+        }
+        if (c.worker_rating) {
+          attributionHtml += '<span class="rated-badge">⭐ ' + c.worker_rating + '/5</span>';
+          if (c.worker_comment) {
+            attributionHtml += '<div style="margin-top:6px; font-style:italic;">💬 "' + escapeHtml(c.worker_comment) + '"</div>';
+          }
+        }
+        attributionHtml += '</div>';
+      }
+
+      // Action buttons depend on status
+      let buttonsHtml = '';
+
+      if (c.status === 'PENDING') {
+        buttonsHtml = `
+          <button class="assign" data-action="ASSIGN">Assign to Staff</button>
+          <button class="reject" data-action="REJECTED">Reject</button>
+        `;
+      } else if (c.status === 'ASSIGNED' || c.status === 'REOPENED') {
+        buttonsHtml = `
+          <button class="change-staff" data-action="CHANGE_STAFF">Change Staff</button>
+          <button class="resolve" data-action="RESOLVED">Resolve</button>
+          <button class="reject" data-action="REJECTED">Reject</button>
+        `;
+      } else if (c.status === 'RESOLVED') {
+        buttonsHtml = `
+          <button class="reopen" data-action="REOPENED">Reopen</button>
+          <button data-action="CLOSED">Close</button>
+        `;
+      } else {
+        // CLOSED or REJECTED
+        buttonsHtml = `
+          <button class="reopen" data-action="REOPENED">Reopen</button>
+        `;
+      }
 
       div.innerHTML = `
         <div class="card-top">
@@ -421,8 +695,6 @@
               <strong>${escapeHtml(c.student_name)}</strong> (${escapeHtml(c.student_roll)}) · ${escapeHtml(c.hostel)}<br>
               Category: ${escapeHtml(c.category)} · Submitted: ${formatDate(c.created_at)} (${timeAgo(c.created_at)})
               ${c.description ? '<br>Note: ' + escapeHtml(c.description) : ''}
-              ${c.assigned_to ? '<br>Assigned to: ' + escapeHtml(c.assigned_to) : ''}
-              ${c.resolved_at ? '<br>Resolved: ' + formatDate(c.resolved_at) : ''}
               ${c.feedback ? '<br><strong>Feedback:</strong> ' + escapeHtml(c.feedback) : ''}
               ${c.reopen_count > 0 ? '<br><span style="color:#b3261e;">⚠ Reopened ' + c.reopen_count + ' time(s)</span>' : ''}
             </div>
@@ -432,34 +704,22 @@
             <span class="badge ${c.status}">${c.status}</span>
           </div>
         </div>
-        ${!isFinal ? `
-        <div class="actions">
-          <input type="text" class="assignInput" placeholder="Staff name" value="${c.assigned_to ? escapeHtml(c.assigned_to) : ''}" />
-          <button class="assign" data-action="ASSIGNED">Assign</button>
-          <button class="progress" data-action="IN_PROGRESS">In Progress</button>
-          <button class="resolve" data-action="RESOLVED">Resolve</button>
-          <button data-action="CLOSED">Close</button>
-          <button class="reject" data-action="REJECTED">Reject</button>
-        </div>
-        ` : `
-        <div class="actions">
-          <button class="reopen" data-action="REOPENED">Reopen</button>
-        </div>
-        `}
+        ${attributionHtml}
+        <div class="actions">${buttonsHtml}</div>
       `;
 
       div.querySelectorAll('button[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
           const action = btn.getAttribute('data-action');
-          const assignedInput = div.querySelector('.assignInput');
-          const assignedTo = assignedInput ? assignedInput.value.trim() : undefined;
-
-          if (action === 'REJECTED') {
+          if (action === 'ASSIGN') openAssignModal(c.id, null);
+          else if (action === 'CHANGE_STAFF') openAssignModal(c.id, c.assigned_to || '');
+          else if (action === 'RESOLVED') updateComplaint(c.id, 'RESOLVED');
+          else if (action === 'CLOSED') updateComplaint(c.id, 'CLOSED');
+          else if (action === 'REOPENED') updateComplaint(c.id, 'REOPENED');
+          else if (action === 'REJECTED') {
             const reason = prompt('Reason for rejection (will be shown to student):');
             if (reason === null) return;
-            updateComplaint(c.id, action, assignedTo, reason);
-          } else {
-            updateComplaint(c.id, action, assignedTo);
+            updateComplaint(c.id, 'REJECTED', reason);
           }
         });
       });
@@ -474,8 +734,14 @@
 
       let filtered = allComplaints;
 
+      // Apply Active/Solved split first
+      if (currentSubTab === 'active') {
+        filtered = filtered.filter(isActiveComplaint);
+      } else {
+        filtered = filtered.filter(isSolvedComplaint);
+      }
+
       if (filterStatus) filtered = filtered.filter(c => c.status === filterStatus);
-      // Case-insensitive hostel match
       if (filterHostel) {
         filtered = filtered.filter(c =>
           String(c.hostel || '').toLowerCase().includes(filterHostel)
@@ -494,7 +760,9 @@
             c.category,
             c.subcategory,
             c.description || '',
-            c.assigned_to || ''
+            c.assigned_to || '',
+            c.assigned_by_warden || '',
+            c.resolved_by_warden || ''
           ].join(' ').toLowerCase();
           return haystack.includes(search);
         });
@@ -525,10 +793,9 @@
       }
     }
 
-    async function updateComplaint(id, status, assignedTo, feedback) {
+    async function updateComplaint(id, status, feedback) {
       try {
         const body = { status };
-        if (assignedTo !== undefined && assignedTo !== '') body.assigned_to = assignedTo;
         if (feedback !== undefined) body.feedback = feedback;
 
         const res = await fetch('/api/complaints/' + id, {
@@ -540,13 +807,204 @@
           window.location.href = 'login.html';
           return;
         }
-        if (!res.ok) throw new Error('Update failed');
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not update complaint.');
+          return;
+        }
         await loadComplaints();
       } catch (err) {
         alert('Could not update complaint. Check server.');
       }
     }
 
+    // ---------- Assign Modal ----------
+    function openAssignModal(complaintId, currentStaff) {
+      const isReassign = !!currentStaff;
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal-box">
+          <h3>${isReassign ? 'Change Staff' : 'Assign to Staff'}</h3>
+          <div class="modal-sub">
+            ${isReassign
+              ? 'Enter the new staff member\'s name. Current: <strong>' + escapeHtml(currentStaff) + '</strong>'
+              : 'Enter the staff member\'s name who will fix this complaint.'}
+          </div>
+          <input type="text" id="modalStaffInput" placeholder="e.g., Ramesh" autocomplete="off" />
+          <div class="modal-err" id="modalErr"></div>
+          <div class="modal-buttons">
+            <button id="modalCancel">Cancel</button>
+            <button class="primary" id="modalConfirm" disabled>${isReassign ? 'Change' : 'Assign'}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      modalOpen = true;
+
+      const input = overlay.querySelector('#modalStaffInput');
+      const confirmBtn = overlay.querySelector('#modalConfirm');
+      const cancelBtn = overlay.querySelector('#modalCancel');
+      const errEl = overlay.querySelector('#modalErr');
+
+      setTimeout(() => input.focus(), 50);
+
+      input.addEventListener('input', () => {
+        confirmBtn.disabled = !input.value.trim();
+      });
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && input.value.trim()) {
+          confirmBtn.click();
+        }
+      });
+
+      function closeModal() {
+        overlay.remove();
+        modalOpen = false;
+      }
+
+      cancelBtn.addEventListener('click', closeModal);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+
+      confirmBtn.addEventListener('click', async () => {
+        const staff_name = input.value.trim();
+        if (!staff_name) return;
+
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Saving...';
+        errEl.style.display = 'none';
+
+        try {
+          const res = await fetch('/api/complaints/' + complaintId + '/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_name })
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            errEl.textContent = data.error || 'Failed to assign.';
+            errEl.style.display = 'block';
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = isReassign ? 'Change' : 'Assign';
+            return;
+          }
+
+          closeModal();
+          await loadComplaints();
+        } catch (err) {
+          errEl.textContent = 'Cannot reach server.';
+          errEl.style.display = 'block';
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = isReassign ? 'Change' : 'Assign';
+        }
+      });
+    }
+
+    // ---------- Worker Performance ----------
+    async function loadWorkers() {
+      workerListEl.innerHTML = '<div class="loading">Loading worker performance...</div>';
+      try {
+        const res = await fetch('/api/workers/performance');
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
+        if (!res.ok) throw new Error();
+        const workers = await res.json();
+
+        if (!workers || workers.length === 0) {
+          workerListEl.innerHTML = '<div class="empty">No workers assigned yet. Assign complaints to see performance here.</div>';
+          return;
+        }
+
+        workerListEl.innerHTML = '';
+        for (const w of workers) {
+          const div = document.createElement('div');
+          div.className = 'worker-card';
+          const avg = w.avg_rating ? Number(w.avg_rating) : null;
+          const starsShown = avg ? '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg)) : '—';
+          div.innerHTML = `
+            <div class="worker-name">👷 ${escapeHtml(w.worker_name)}</div>
+            <div class="worker-stats">
+              <span class="worker-stars">${starsShown}</span>
+              <span>${avg ? avg.toFixed(2) + ' / 5' : 'No ratings'}</span>
+              <span><strong>${w.total_jobs}</strong> total jobs</span>
+              <span><strong>${w.completed_jobs}</strong> completed</span>
+              <span><strong>${w.rated_jobs}</strong> rated</span>
+            </div>
+          `;
+          workerListEl.appendChild(div);
+        }
+      } catch (err) {
+        workerListEl.innerHTML = '<div class="empty">Could not load worker performance.</div>';
+      }
+    }
+
+    // ---------- Print Task List ----------
+    function printTaskList() {
+      // Print active (assigned or pending) tasks
+      const active = allComplaints.filter(c =>
+        c.status === 'PENDING' || c.status === 'ASSIGNED' || c.status === 'REOPENED'
+      );
+
+      if (active.length === 0) {
+        alert('No active tasks to print.');
+        return;
+      }
+
+      const today = new Date().toLocaleDateString();
+      const hostel = currentUser.hostel || 'All Hostels';
+
+      let html = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: auto;">
+          <h1 style="color:#0d3b66; margin-bottom: 4px;">Hostel Fix — Task List</h1>
+          <p style="color:#666; margin-bottom: 20px;">
+            <strong>${escapeHtml(hostel)}</strong> · ${today}
+          </p>
+          <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <thead>
+              <tr style="background:#f4f6f8; border-bottom:2px solid #333;">
+                <th style="text-align:left; padding:8px;">Done</th>
+                <th style="text-align:left; padding:8px;">Code</th>
+                <th style="text-align:left; padding:8px;">Room</th>
+                <th style="text-align:left; padding:8px;">Problem</th>
+                <th style="text-align:left; padding:8px;">Assigned To</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      for (const c of active) {
+        html += `
+          <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:10px;"><span style="display:inline-block; width:16px; height:16px; border:2px solid #333; border-radius:3px;"></span></td>
+            <td style="padding:10px; font-family:monospace;">${escapeHtml(complaintCode(c))}</td>
+            <td style="padding:10px;">${escapeHtml(c.room_number)}</td>
+            <td style="padding:10px;">${escapeHtml(c.subcategory)}${c.priority === 'EMERGENCY' ? ' ⚠ EMERGENCY' : ''}</td>
+            <td style="padding:10px;">${escapeHtml(c.assigned_to || '—')}</td>
+          </tr>
+        `;
+      }
+
+      html += `
+            </tbody>
+          </table>
+          <p style="margin-top: 24px; font-size: 12px; color:#888;">
+            Total active tasks: ${active.length} · Printed ${new Date().toLocaleString()}
+          </p>
+        </div>
+      `;
+
+      printArea.innerHTML = html;
+      printArea.classList.remove('hidden');
+      window.print();
+      setTimeout(() => printArea.classList.add('hidden'), 500);
+    }
+
+    // ---------- Event listeners ----------
     filterStatusEl.addEventListener('change', render);
     filterHostelEl.addEventListener('input', render);
     searchInputEl.addEventListener('input', render);
@@ -556,12 +1014,23 @@
       searchInputEl.focus();
     });
     refreshBtn.addEventListener('click', loadComplaints);
+    printTaskListBtn.addEventListener('click', printTaskList);
+
+    // ---------- Auto-refresh (paused while modal open) ----------
+    function startAutoRefresh() {
+      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+      autoRefreshTimer = setInterval(() => {
+        if (!modalOpen) {
+          loadComplaints();
+        }
+      }, 15000);
+    }
 
     (async () => {
       const ok = await checkAuth();
       if (ok) {
         loadComplaints();
-        setInterval(loadComplaints, 15000);
+        startAutoRefresh();
       }
     })();
   </script>

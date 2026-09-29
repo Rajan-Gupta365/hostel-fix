@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode + Roll Uniqueness)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode + Attribution + Worker Feedback + Active/Solved Split)
 
 const express = require('express');
 const cors = require('cors');
@@ -25,8 +25,22 @@ const ALLOWED_HOSTELS = [
 
 const DEFAULT_HOSTEL = 'KP-25J';
 
+// Auto-close RESOLVED complaints older than N days
+const AUTO_CLOSE_DAYS = 7;
+
 function isValidHostelCode(code) {
   return ALLOWED_HOSTELS.some(h => h.code === code);
+}
+
+// Normalize staff name: trim + Title Case + collapse spaces
+function normalizeStaffName(name) {
+  if (!name || typeof name !== 'string') return '';
+  return name.trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .filter(w => w.length > 0)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
 }
 
 if (!BREVO_API_KEY) {
@@ -173,7 +187,6 @@ async function backfillComplaintCodes() {
   }
 }
 
-// Force every existing hostel value to DEFAULT_HOSTEL (single-hostel mode)
 async function migrateAllHostelsToDefault() {
   try {
     const tables = ['complaints', 'wardens', 'students'];
@@ -192,6 +205,43 @@ async function migrateAllHostelsToDefault() {
     }
   } catch (err) {
     console.error('Hostel migration error:', err.message);
+  }
+}
+
+// Migrate existing IN_PROGRESS complaints to ASSIGNED
+async function migrateInProgressToAssigned() {
+  try {
+    const result = await pool.query(
+      `UPDATE complaints SET status = 'ASSIGNED', updated_at = NOW()
+       WHERE status = 'IN_PROGRESS'`
+    );
+    if (result.rowCount > 0) {
+      console.log(`Migrated ${result.rowCount} IN_PROGRESS complaints to ASSIGNED.`);
+    }
+  } catch (err) {
+    console.error('In-progress migration error:', err.message);
+  }
+}
+
+// Auto-close RESOLVED complaints older than N days
+async function autoCloseOldResolved() {
+  try {
+    const result = await pool.query(
+      `UPDATE complaints
+       SET status = 'CLOSED',
+           closed_at = NOW(),
+           updated_at = NOW(),
+           feedback = COALESCE(feedback, 'Auto-closed after ' || $1 || ' days')
+       WHERE status = 'RESOLVED'
+         AND resolved_at IS NOT NULL
+         AND resolved_at < NOW() - ($1 || ' days')::INTERVAL`,
+      [String(AUTO_CLOSE_DAYS)]
+    );
+    if (result.rowCount > 0) {
+      console.log(`Auto-closed ${result.rowCount} old RESOLVED complaints.`);
+    }
+  } catch (err) {
+    console.error('Auto-close error:', err.message);
   }
 }
 
@@ -377,7 +427,6 @@ app.post('/api/student/register', async (req, res) => {
       return res.status(400).json({ error: 'Please select a valid hostel.' });
     }
 
-    // Check email uniqueness
     const existingEmail = await pool.query(
       'SELECT id FROM students WHERE email = $1',
       [email]
@@ -386,7 +435,6 @@ app.post('/api/student/register', async (req, res) => {
       return res.status(400).json({ error: 'This email is already registered.' });
     }
 
-    // Check roll number uniqueness (case-insensitive)
     const existingRoll = await pool.query(
       'SELECT id FROM students WHERE LOWER(roll_number) = LOWER($1)',
       [roll_number]
@@ -492,7 +540,6 @@ app.get('/api/student/me', requireStudent(), (req, res) => {
   res.json({ user: req.session.user });
 });
 
-// Get ONLY this student's complaints — filter by roll AND room AND hostel
 app.get('/api/student/my-complaints', requireStudent(), async (req, res) => {
   try {
     const user = req.session.user;
@@ -878,6 +925,42 @@ app.post('/api/admin/wardens/:id/reset-password', requireAdmin(), async (req, re
 });
 
 // =============================================
+// WORKER PERFORMANCE (Admin + Warden)
+// =============================================
+app.get('/api/workers/performance', requireStaff(), async (req, res) => {
+  try {
+    const user = req.session.user;
+    const hostelFilter = user.role === 'warden' ? user.hostel : null;
+
+    const params = [];
+    let where = `WHERE assigned_to IS NOT NULL AND assigned_to <> ''`;
+    if (hostelFilter) {
+      params.push(hostelFilter);
+      where += ` AND LOWER(hostel) = LOWER($${params.length})`;
+    }
+
+    const result = await pool.query(
+      `SELECT
+         assigned_to AS worker_name,
+         COUNT(*) AS total_jobs,
+         COUNT(*) FILTER (WHERE status IN ('RESOLVED', 'CLOSED')) AS completed_jobs,
+         COUNT(*) FILTER (WHERE worker_rating IS NOT NULL) AS rated_jobs,
+         ROUND(AVG(worker_rating) FILTER (WHERE worker_rating IS NOT NULL)::numeric, 2) AS avg_rating
+       FROM complaints
+       ${where}
+       GROUP BY assigned_to
+       ORDER BY avg_rating DESC NULLS LAST, total_jobs DESC`,
+      params
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Worker performance error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// =============================================
 // COMPLAINT ROUTES
 // =============================================
 
@@ -1007,23 +1090,109 @@ app.get('/api/complaints/:id', requireStaff(), async (req, res) => {
   }
 });
 
+// =============================================
+// ASSIGN / REASSIGN ROUTE
+// Staff-only. Handles both first assignment and reassignment.
+// Body: { staff_name }
+// =============================================
+app.post('/api/complaints/:id/assign', requireStaff(), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const rawName = (req.body.staff_name || '').trim();
+    const staff_name = normalizeStaffName(rawName);
+
+    if (!staff_name) {
+      return res.status(400).json({ error: 'Staff name is required' });
+    }
+
+    const check = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Complaint not found' });
+    }
+
+    const complaint = check.rows[0];
+
+    if (req.session.user.role === 'warden' &&
+        complaint.hostel.toLowerCase() !== req.session.user.hostel.toLowerCase()) {
+      return res.status(403).json({ error: 'Not authorized for this hostel' });
+    }
+
+    if (complaint.status === 'CLOSED' || complaint.status === 'REJECTED') {
+      return res.status(400).json({
+        error: 'Cannot assign a closed or rejected complaint. Reopen it first.'
+      });
+    }
+
+    const wardenName = req.session.user.full_name || req.session.user.username || null;
+
+    await pool.query(
+      `UPDATE complaints
+       SET assigned_to = $1,
+           status = 'ASSIGNED',
+           assigned_by_warden = $2,
+           assigned_at = NOW(),
+           updated_at = NOW()
+       WHERE id = $3`,
+      [staff_name, wardenName, id]
+    );
+
+    const updated = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    res.json(updated.rows[0]);
+  } catch (err) {
+    console.error('Assign error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// =============================================
+// AUTO-CLOSE ENDPOINT
+// Called by students on page load. Auto-closes their RESOLVED complaints older than N days.
+// =============================================
+app.post('/api/complaints/auto-close-my', requireStudent(), async (req, res) => {
+  try {
+    const user = req.session.user;
+    const result = await pool.query(
+      `UPDATE complaints
+       SET status = 'CLOSED',
+           closed_at = NOW(),
+           updated_at = NOW(),
+           feedback = COALESCE(feedback, 'Auto-closed after ' || $1 || ' days')
+       WHERE status = 'RESOLVED'
+         AND resolved_at IS NOT NULL
+         AND resolved_at < NOW() - ($1 || ' days')::INTERVAL
+         AND LOWER(student_roll) = LOWER($2)
+         AND LOWER(room_number) = LOWER($3)
+         AND LOWER(hostel) = LOWER($4)`,
+      [String(AUTO_CLOSE_DAYS), user.roll_number, user.room_number, user.hostel]
+    );
+    res.json({ closed: result.rowCount || 0 });
+  } catch (err) {
+    console.error('Auto-close-my error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// =============================================
+// UPDATE COMPLAINT STATUS (Resolve / Close / Reject / Reopen)
+// =============================================
 app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
   try {
     const id = req.params.id;
-    const { status, assigned_to, feedback } = req.body;
+    const { status, feedback } = req.body;
 
     const check = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
     if (check.rows.length === 0) return res.status(404).json({ error: 'Complaint not found' });
 
     const role = req.session.user.role;
+    const complaint = check.rows[0];
 
     if (role === 'warden' &&
-        check.rows[0].hostel.toLowerCase() !== req.session.user.hostel.toLowerCase()) {
+        complaint.hostel.toLowerCase() !== req.session.user.hostel.toLowerCase()) {
       return res.status(403).json({ error: 'Not authorized for this hostel' });
     }
 
     if (role === 'student') {
-      if (check.rows[0].student_roll !== req.session.user.roll_number) {
+      if (complaint.student_roll !== req.session.user.roll_number) {
         return res.status(403).json({ error: 'Not your complaint' });
       }
       if (status !== 'CLOSED' && status !== 'REOPENED') {
@@ -1031,12 +1200,23 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
       }
     }
 
+    // Reject IN_PROGRESS — it's been removed from the workflow
+    if (status === 'IN_PROGRESS') {
+      return res.status(400).json({ error: 'IN_PROGRESS is no longer used. Use ASSIGNED instead.' });
+    }
+
     const updates = [];
     const values = [];
 
     if (status) { values.push(status); updates.push(`status = $${values.length}`); }
-    if (assigned_to !== undefined) { values.push(assigned_to); updates.push(`assigned_to = $${values.length}`); }
     if (feedback !== undefined) { values.push(feedback); updates.push(`feedback = $${values.length}`); }
+
+    // Attribution for resolve
+    const wardenName = req.session.user.full_name || req.session.user.username || null;
+    if ((role === 'warden' || role === 'admin') && status === 'RESOLVED') {
+      values.push(wardenName);
+      updates.push(`resolved_by_warden = $${values.length}`);
+    }
 
     updates.push(`updated_at = NOW()`);
     if (status === 'RESOLVED') updates.push(`resolved_at = NOW()`);
@@ -1059,6 +1239,57 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
   }
 });
 
+// =============================================
+// WORKER RATING (Students only)
+// =============================================
+app.post('/api/complaints/:id/rate', requireStudent(), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { rating, comment } = req.body;
+
+    const ratingNum = Number(rating);
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    const check = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Complaint not found' });
+    }
+
+    const c = check.rows[0];
+
+    if (c.student_roll.toLowerCase() !== req.session.user.roll_number.toLowerCase()) {
+      return res.status(403).json({ error: 'Not your complaint' });
+    }
+    if (c.status !== 'RESOLVED' && c.status !== 'CLOSED') {
+      return res.status(400).json({ error: 'You can only rate after the complaint is resolved' });
+    }
+    if (!c.assigned_to) {
+      return res.status(400).json({ error: 'No worker was assigned to this complaint' });
+    }
+
+    await pool.query(
+      `UPDATE complaints
+       SET worker_rating = $1,
+           worker_comment = $2,
+           rated_at = NOW(),
+           updated_at = NOW()
+       WHERE id = $3`,
+      [ratingNum, (comment || '').trim() || null, id]
+    );
+
+    const updated = await pool.query('SELECT * FROM complaints WHERE id = $1', [id]);
+    res.json({
+      message: 'Thanks for your feedback!',
+      complaint: updated.rows[0]
+    });
+  } catch (err) {
+    console.error('Rate error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
@@ -1071,9 +1302,12 @@ async function start() {
     await initSchema();
     await backfillComplaintCodes();
     await migrateAllHostelsToDefault();
+    await migrateInProgressToAssigned();
+    await autoCloseOldResolved();
     app.listen(PORT, () => {
       console.log(`Hostel-Fix backend running at http://localhost:${PORT}`);
       console.log(`Allowed hostels: ${ALLOWED_HOSTELS.map(h => h.code).join(', ')}`);
+      console.log(`Auto-close after: ${AUTO_CLOSE_DAYS} days`);
       console.log(`Home:      http://localhost:${PORT}/`);
       console.log(`Student:   http://localhost:${PORT}/student.html`);
       console.log(`Signup:    http://localhost:${PORT}/signup.html`);
