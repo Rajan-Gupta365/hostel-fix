@@ -1,5 +1,5 @@
 // server.js
-// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode + Attribution + Worker Feedback + Active/Solved Split)
+// Main backend server for hostel-fix (PostgreSQL + Auth + Admin + Student OTP + Brevo + Password Reset + Warden Invite + Single-Hostel Mode + Attribution + Worker Feedback + Active/Solved Split + CSV Export)
 
 const express = require('express');
 const cors = require('cors');
@@ -24,15 +24,12 @@ const ALLOWED_HOSTELS = [
 ];
 
 const DEFAULT_HOSTEL = 'KP-25J';
-
-// Auto-close RESOLVED complaints older than N days
 const AUTO_CLOSE_DAYS = 7;
 
 function isValidHostelCode(code) {
   return ALLOWED_HOSTELS.some(h => h.code === code);
 }
 
-// Normalize staff name: trim + Title Case + collapse spaces
 function normalizeStaffName(name) {
   if (!name || typeof name !== 'string') return '';
   return name.trim()
@@ -41,6 +38,15 @@ function normalizeStaffName(name) {
     .filter(w => w.length > 0)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
+}
+
+function csvEscape(value) {
+  if (value === null || value === undefined) return '';
+  let s = String(value);
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    s = '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
 }
 
 if (!BREVO_API_KEY) {
@@ -208,7 +214,6 @@ async function migrateAllHostelsToDefault() {
   }
 }
 
-// Migrate existing IN_PROGRESS complaints to ASSIGNED
 async function migrateInProgressToAssigned() {
   try {
     const result = await pool.query(
@@ -223,7 +228,6 @@ async function migrateInProgressToAssigned() {
   }
 }
 
-// Auto-close RESOLVED complaints older than N days
 async function autoCloseOldResolved() {
   try {
     const result = await pool.query(
@@ -961,6 +965,73 @@ app.get('/api/workers/performance', requireStaff(), async (req, res) => {
 });
 
 // =============================================
+// CSV EXPORT — MUST BE ABOVE /api/complaints/:id
+// =============================================
+app.get('/api/complaints/export.csv', requireStaff(), async (req, res) => {
+  try {
+    const user = req.session.user;
+    const params = [];
+    let where = '';
+    if (user.role === 'warden') {
+      params.push(user.hostel);
+      where = `WHERE LOWER(hostel) = LOWER($${params.length})`;
+    }
+
+    const result = await pool.query(
+      `SELECT
+         complaint_code, student_name, student_roll, room_number, hostel,
+         category, subcategory, description, status, priority,
+         assigned_to, assigned_by_warden, assigned_at,
+         resolved_by_warden, resolved_at,
+         worker_rating, worker_comment, rated_at,
+         reopen_count, feedback, created_at, updated_at
+       FROM complaints
+       ${where}
+       ORDER BY created_at DESC`,
+      params
+    );
+
+    const columns = [
+      'complaint_code', 'student_name', 'student_roll', 'room_number', 'hostel',
+      'category', 'subcategory', 'description', 'status', 'priority',
+      'assigned_to', 'assigned_by_warden', 'assigned_at',
+      'resolved_by_warden', 'resolved_at',
+      'worker_rating', 'worker_comment', 'rated_at',
+      'reopen_count', 'feedback', 'created_at', 'updated_at'
+    ];
+
+    const headers = [
+      'Complaint Code', 'Student Name', 'Roll Number', 'Room Number', 'Hostel',
+      'Category', 'Subcategory', 'Description', 'Status', 'Priority',
+      'Assigned To', 'Assigned By', 'Assigned At',
+      'Resolved By', 'Resolved At',
+      'Worker Rating', 'Worker Comment', 'Rated At',
+      'Reopen Count', 'Feedback', 'Created At', 'Updated At'
+    ];
+
+    let csv = headers.map(csvEscape).join(',') + '\r\n';
+
+    for (const row of result.rows) {
+      const line = columns.map(col => csvEscape(row[col]));
+      csv += line.join(',') + '\r\n';
+    }
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const filename = `hostel-fix-complaints-${yyyy}-${mm}-${dd}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    console.error('CSV export error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// =============================================
 // COMPLAINT ROUTES
 // =============================================
 
@@ -1063,6 +1134,7 @@ app.get('/api/complaints', requireStaff(), async (req, res) => {
   }
 });
 
+// IMPORTANT: This must come AFTER export.csv
 app.get('/api/complaints/by-roll/:roll', requireStaff(), async (req, res) => {
   try {
     const result = await pool.query(
@@ -1090,11 +1162,6 @@ app.get('/api/complaints/:id', requireStaff(), async (req, res) => {
   }
 });
 
-// =============================================
-// ASSIGN / REASSIGN ROUTE
-// Staff-only. Handles both first assignment and reassignment.
-// Body: { staff_name }
-// =============================================
 app.post('/api/complaints/:id/assign', requireStaff(), async (req, res) => {
   try {
     const id = req.params.id;
@@ -1144,10 +1211,6 @@ app.post('/api/complaints/:id/assign', requireStaff(), async (req, res) => {
   }
 });
 
-// =============================================
-// AUTO-CLOSE ENDPOINT
-// Called by students on page load. Auto-closes their RESOLVED complaints older than N days.
-// =============================================
 app.post('/api/complaints/auto-close-my', requireStudent(), async (req, res) => {
   try {
     const user = req.session.user;
@@ -1172,9 +1235,6 @@ app.post('/api/complaints/auto-close-my', requireStudent(), async (req, res) => 
   }
 });
 
-// =============================================
-// UPDATE COMPLAINT STATUS (Resolve / Close / Reject / Reopen)
-// =============================================
 app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
   try {
     const id = req.params.id;
@@ -1200,7 +1260,6 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
       }
     }
 
-    // Reject IN_PROGRESS — it's been removed from the workflow
     if (status === 'IN_PROGRESS') {
       return res.status(400).json({ error: 'IN_PROGRESS is no longer used. Use ASSIGNED instead.' });
     }
@@ -1211,7 +1270,6 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
     if (status) { values.push(status); updates.push(`status = $${values.length}`); }
     if (feedback !== undefined) { values.push(feedback); updates.push(`feedback = $${values.length}`); }
 
-    // Attribution for resolve
     const wardenName = req.session.user.full_name || req.session.user.username || null;
     if ((role === 'warden' || role === 'admin') && status === 'RESOLVED') {
       values.push(wardenName);
@@ -1239,9 +1297,6 @@ app.patch('/api/complaints/:id', requireAuth(), async (req, res) => {
   }
 });
 
-// =============================================
-// WORKER RATING (Students only)
-// =============================================
 app.post('/api/complaints/:id/rate', requireStudent(), async (req, res) => {
   try {
     const id = req.params.id;
